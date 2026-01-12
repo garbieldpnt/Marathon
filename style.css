@@ -67,5 +67,13 @@ button:active {
     border-radius: 12px;
     margin-bottom: 8px;
 }
+/* Ajoutez ceci à votre fichier style.css */
+#listeActivites div {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
 
-
+#listeActivites div:active {
+    transform: scale(0.98);
+    background-color: #f8fafc;
+}
