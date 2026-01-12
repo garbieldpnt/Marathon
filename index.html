@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Objectf marathon</title>
+    <title>Tracker 🦄 3️⃣</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="https://raw.githubusercontent.com/garbieldpnt/Marathon/main/android-chrome-512x512.png">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="script.js"></script>
 </head>
 <body class="bg-slate-50 p-4">
 
@@ -32,21 +35,33 @@
             + 3️⃣
         </button>
     </div>
-<div class="mb-8">
-    <div class="card p-4 bg-slate-800 border-b-4 border-slate-900">
-        <div class="flex justify-between items-center">
-            <p class="text-slate-400 font-bold uppercase text-xs tracking-wider">Total Cumulé</p>
-            <p id="totalGeneral" class="text-2xl font-black text-white">0.00 m</p>
+
+
+<div class="mb-4">
+    <div class="card p-4 bg-slate-800 border-b-4 border-slate-900 text-white">
+        <div class="flex justify-between items-center mb-2">
+            <p class="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Total Cumulé</p>
+            <p id="totalGeneral" class="text-2xl font-black italic">0.00 m</p>
         </div>
+        <p id="funFact" class="text-center text-sm text-slate-300 border-t border-slate-700 pt-2 italic">
+            Commencez pour voir une comparaison !
+        </p>
+      <div class="mt-4 bg-slate-700 rounded-full h-2 w-full overflow-hidden">
+    <div id="progressBar" class="bg-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
+</div>
+<p id="nextMilestone" class="text-[10px] text-slate-400 mt-1 text-right italic uppercase tracking-widest">
+    Objectif : Statue de la Liberté
+</p>
     </div>
 </div>
-
-
-    <div class="card p-4">
+  <button onclick="partagerStats()" class="mt-4 w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all">
+    <span>Partager mes stats</span> 🚀
+</button>
+<div class="card p-4">
         <h2 class="font-bold text-slate-700 mb-3 text-center">Historique</h2>
         <div id="listeActivites" class="space-y-3 max-h-80 overflow-y-auto"></div>
         <button onclick="resetData()" class="mt-6 text-xs text-red-400 w-full underline">Effacer tout</button>
-    </div>
+</div>
 
     <div id="modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-6 backdrop-blur-sm" style="z-index: 999;">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
@@ -61,5 +76,53 @@
     </div>
 
     <script src="script.js"></script>
+
+<div class="mt-4 text-center">
+    <label for="photoInput" class="cursor-pointer bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-[10px] font-bold inline-block uppercase tracking-wider">
+        📸 Ajouter une photo
+    </label>
+    <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="gererPhoto(event)">
+</div>
+
+<div id="shareCardContainer" style="position: absolute; left: -9999px; top: -9999px; width: 400px; height: 400px; background: #bc13fe; overflow: hidden; padding: 25px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; position: relative;">
+
+    <div style="position: absolute; top: 25px; left: 25px; z-index: 4; display: flex; flex-direction: column; align-items: flex-start;">
+        <p id="shareTotalGeneral" style="font-size: 60px; font-weight: 800; letter-spacing: -3px; line-height: 1; margin: 0; color: white;">
+            1.57
+        </p>
+        <p style="font-size: 18px; font-weight: 800; text-transform: uppercase; margin: 0; margin-top: 5px; letter-spacing: 1px; color: white; opacity: 0.9;">
+            METERS
+        </p>
+    </div>
+
+    <div id="photoContainer" style="position: absolute; top: -40px; right: -40px; width: 288px; height: 288px; z-index: 2; display: none;">
+        <img id="userPhoto" src="" style="width: 100%; height: 100%; object-fit: cover; mask-image: linear-gradient(to bottom left, black 60%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom left, black 60%, transparent 100%);">
+    </div>
+
+    <h2 id="shareFunFactSolid" style="position: absolute; bottom: 150px; left: 25px; z-index: 1; font-size: 38px; font-weight: 800; line-height: 0.95; letter-spacing: -2px; text-transform: uppercase; color: white; margin: 0; text-align: left; max-width: 90%;"></h2>
+    
+    <h2 id="shareFunFactHollow" style="position: absolute; bottom: 150px; left: 25px; z-index: 3; font-size: 38px; font-weight: 800; line-height: 0.95; letter-spacing: -2px; text-transform: uppercase; color: transparent; -webkit-text-stroke: 2px white; margin: 0; text-align: left; max-width: 90%;"></h2>
+
+    <div style="position: absolute; bottom: 115px; left: 25px; right: 25px; z-index: 4; border-top: 2px solid white;"></div>
+
+    <div style="position: absolute; bottom: 50px; left: 25px; right: 25px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+            <p style="font-size: 30px; margin: 0; margin-bottom: 5px; line-height: 1;">🦄</p>
+            <p id="shareTotalK" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+        </div>
+        <div>
+            <p style="font-size: 30px; margin: 0; margin-bottom: 5px; line-height: 1;">3️⃣</p>
+            <p id="shareTotal3" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+        </div>
+    </div>
+
+    <div style="position: absolute; bottom: 20px; left: 25px; z-index: 4; display: flex; align-items: center; gap: 8px;">
+        <p style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: black; margin: 0; opacity: 0.8;">
+            Made by garbiel
+        </p>
+    </div>
+
+</div>
+  
 </body>
 </html>
