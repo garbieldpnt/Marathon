@@ -77,3 +77,227 @@ button:active {
     transform: scale(0.98);
     background-color: #f8fafc;
 }
+/* --- CONFIGURATION MOBILE --- */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Supprime le flash gris au clic sur iOS */
+}
+
+body {
+    background-color: #f8fafc; /* Gris très léger */
+    color: #1e293b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Empêche le zoom automatique sur iPhone quand on clique sur l'input */
+input[type="number"] {
+    font-size: 16px !important;
+}
+
+/* --- COMPOSANTS --- */
+.card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --- MODAL (POP-UP) --- */
+#modal {
+    z-index: 1000;
+}
+
+.modal-content {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* --- BOUTONS --- */
+button {
+    cursor: pointer;
+    user-select: none;
+}
+
+button:active {
+    transform: scale(0.96); /* Effet d'appui sur bouton */
+}
+
+/* --- HISTORIQUE --- */
+#listeActivites {
+    scrollbar-width: none; /* Cache la scrollbar sur Firefox */
+}
+
+#listeActivites::-webkit-scrollbar {
+    display: none; /* Cache la scrollbar sur Chrome/Safari */
+}
+
+/* Styles pour les lignes de l'historique */
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+/* Ajoutez ceci à votre fichier style.css */
+#listeActivites div {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#listeActivites div:active {
+    transform: scale(0.98);
+    background-color: #f8fafc;
+}
+
+/* --- STYLE DE LA MODALE DE PARTAGE --- */
+
+/* L'arrière-plan sombre */
+.modal-overlay {
+    display: none; /* Caché par défaut */
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    align-items: center; 
+    justify-content: center; 
+    backdrop-filter: blur(4px); /* Petit effet de flou style iOS */
+}
+
+/* La carte blanche au centre */
+.modal-card {
+    background: white;
+    padding: 30px;
+    border-radius: 24px;
+    text-align: center;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Typographie */
+.modal-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #000;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.modal-card p {
+    color: #666;
+    margin-bottom: 25px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Conteneur des boutons */
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Style général des boutons */
+.btn-modal {
+    border: none;
+    padding: 16px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    width: 100%;
+}
+
+.btn-modal:active {
+    transform: scale(0.98);
+}
+
+/* Bouton Violet (Photo) */
+.btn-photo {
+    background: #bc13fe;
+    color: white;
+}
+
+/* Bouton Gris (Sans photo) */
+.btn-basic {
+    background: #f2f2f2;
+    color: #333;
+}
+
+/* Lien Annuler */
+.btn-cancel {
+    display: block;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #999;
+    cursor: pointer;
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+/* Animation d'apparition */
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* --- ZONE DE TRANSFERT DE DONNÉES --- */
+
+/* Le conteneur qui aligne les boutons */
+.transfer-controls {
+    width: 100%;
+    margin-top: 30px;
+    margin-bottom: 50px;
+    display: flex;
+    gap: 10px;
+    box-sizing: border-box;
+}
+
+/* Style commun aux deux boutons (forme, texte, taille) */
+.btn-data {
+    flex: 1; /* Chacun prend 50% de la place */
+    padding: 15px;
+    border-radius: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.1s ease;
+}
+
+/* Petit effet de clic */
+.btn-data:active {
+    transform: scale(0.98);
+}
+
+/* Bouton Sauvegarder (Fond Blanc, Bord Violet) */
+.btn-save {
+    background: white;
+    border: 2px solid #bc13fe;
+    color: #bc13fe;
+}
+
+/* Bouton Restaurer (Fond Violet, Texte Blanc) */
+.btn-restore {
+    background: #bc13fe;
+    border: 2px solid #bc13fe;
+    color: white;
+}
