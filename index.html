@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta name="apple-mobile-web-app-capable" content="yes">   
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">    
-    <meta name="apple-mobile-web-app-title" content="My Wrapped">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tracker 🦄 3️⃣</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/garbieldpnt/Marathon/main/apple-touch-icon.png">   
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/garbieldpnt/Marathon/main/apple-touch-icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <link rel="apple-touch-icon" href="xays.png">
 </head>
 <body class="bg-slate-50 p-4">
 
@@ -57,13 +55,24 @@
 </p>
     </div>
 </div>
-  <button onclick="partagerStats()" class="mt-4 w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all">
+  <button onclick="ouvrirMenuPartage()" class="mt-4 w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all">
     <span>Partager mes stats</span> 🚀
 </button>
 <div class="card p-4">
         <h2 class="font-bold text-slate-700 mb-3 text-center">Historique</h2>
         <div id="listeActivites" class="space-y-3 max-h-80 overflow-y-auto"></div>
         <button onclick="resetData()" class="mt-6 text-xs text-red-400 w-full underline">Effacer tout</button>
+</div>
+  <div class="transfer-controls">
+
+    <button onclick="copierDonnees()" class="btn-data btn-save">
+        Sauvegarder
+    </button>
+    
+    <button onclick="collerDonnees()" class="btn-data btn-restore">
+        Restaurer
+    </button>
+
 </div>
 
     <div id="modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-6 backdrop-blur-sm" style="z-index: 999;">
@@ -77,15 +86,6 @@
             </div>
         </div>
     </div>
-
-    
-
-<div class="mt-4 text-center">
-    <label for="photoInput" class="cursor-pointer bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-[10px] font-bold inline-block uppercase tracking-wider">
-        📸 Ajouter une photo
-    </label>
-    <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="gererPhoto(event)">
-</div>
 
 <div id="shareCardContainer" style="position: absolute; left: -9999px; top: -9999px; width: 400px; height: 400px; background: #bc13fe; overflow: hidden; padding: 25px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; position: relative;">
 
@@ -126,6 +126,20 @@
     </div>
 
 </div>
-  <script src="script.js"></script>
+  <input type="file" id="imageInputTrigger" accept="image/*" style="display: none;">
+
+<div id="photoModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3>Personnaliser ?</h3>
+        <p>Tu peux ajouter ta propre photo en fond ou garder le style classique.</p>
+        <div class="modal-actions">
+            <button onclick="declencherAjoutPhoto()" class="btn-modal btn-photo">📸 Ajouter ma photo</button>
+            <button onclick="lancerGenerationSansPhoto()" class="btn-modal btn-basic">Non, garder le violet</button>
+        </div>
+        <span onclick="fermerModal()" class="btn-cancel">Annuler</span>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
