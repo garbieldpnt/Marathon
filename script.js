@@ -230,3 +230,121 @@ function gererPhoto(event) {
         reader.readAsDataURL(file);
     }
 }
+
+// 1. Ouvre le menu
+function ouvrirMenuPartage() {
+    document.getElementById('photoModal').style.display = 'flex';
+}
+
+// 2. Ferme le menu
+function fermerModal() {
+    document.getElementById('photoModal').style.display = 'none';
+}
+
+// 3. Option "Sans Photo" : Lance directement la capture
+function lancerGenerationSansPhoto() {
+    document.getElementById('photoContainer').style.display = 'none'; // Cache la photo au cas où
+    fermerModal();
+    partagerStats(); // Lance ta fonction principale de capture
+}
+
+// 4. Option "Avec Photo" : Ouvre la galerie du téléphone
+function declencherAjoutPhoto() {
+    document.getElementById('imageInputTrigger').click();
+}
+
+// 5. Quand l'utilisateur a choisi une image
+document.getElementById('imageInputTrigger').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+        let reader = new FileReader();
+        
+        reader.onload = function(event) {
+            // Affiche l'image choisie
+            document.getElementById('userPhoto').src = event.target.result;
+            document.getElementById('photoContainer').style.display = 'block';
+            
+            // Ferme le menu
+            fermerModal();
+            
+            // Attend un tout petit peu que l'image s'affiche, puis lance la capture
+            setTimeout(function() {
+                partagerStats();
+            }, 200);
+        }
+        
+        reader.readAsDataURL(e.target.files[0]);
+    }
+});
+
+/* === SYSTÈME DE SAUVEGARDE MANUELLE === */
+
+/* === NOUVELLE VERSION : SAUVEGARDE === */
+
+function copierDonnees() {
+    // On crée un objet propre avec uniquement tes données
+    // (Ça évite de copier des trucs système inutiles)
+    const sauvegarde = JSON.stringify(localStorage);
+    
+    if (sauvegarde === "{}" || sauvegarde === "[]") {
+        alert("Il va falloir taper un peu avant!");
+        return;
+    }
+
+    navigator.clipboard.writeText(sauvegarde).then(() => {
+        alert("✅ Données copiées dans le presse-papier !");
+    }).catch(err => {
+        alert("❌ Impossible de copier automatiquement.\nErreur : " + err);
+    });
+}
+
+/* === NOUVELLE VERSION : RESTAURATION ROBUSTE === */
+
+async function collerDonnees() {
+    try {
+        // 1. On demande l'accès au presse-papier
+        // Sur iPhone, une petite bulle "Coller depuis Safari ?" va apparaître
+        const textePressePapier = await navigator.clipboard.readText();
+
+        if (!textePressePapier) {
+            alert("❌ Le presse-papier est vide ou l'accès a été refusé.");
+            return;
+        }
+
+        // 2. On vérifie si ça ressemble à du JSON
+        if (!textePressePapier.startsWith("{")) {
+            alert("Appuie sur le bouton sauvegarder d'abord!");
+            return;
+        }
+
+        // 3. On essaie de convertir le texte en données
+        const donnees = JSON.parse(textePressePapier);
+        
+        // 4. On vide l'app actuelle pour éviter les conflits
+        localStorage.clear();
+
+        // 5. On remplit avec les nouvelles données
+        let compteur = 0;
+        for (const [cle, valeur] of Object.entries(donnees)) {
+            localStorage.setItem(cle, valeur);
+            compteur++;
+        }
+
+        alert(`✅ Données valides ! La page va recharger.`);
+try {
+    // Méthode 1 : Standard
+    window.location.reload();
+} catch (e) {
+    // Méthode 2 : Si CodePen bloque, on force la réassignation de l'URL
+    window.location.href = window.location.href;
+}
+    } catch (erreur) {
+        console.error(erreur);
+        // Si l'erreur est liée au format JSON
+        if (erreur instanceof SyntaxError) {
+            alert("❌ Erreur de format : Le texte copié est incomplet ou corrompu.");
+        } else {
+            // Si l'erreur est liée aux permissions ou autre
+            alert("❌ Erreur technique : " + erreur.message + "\n(Essaie de copier à nouveau tes données)");
+        }
+    }
+}
