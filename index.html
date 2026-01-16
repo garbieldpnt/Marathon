@@ -78,6 +78,13 @@
 
 </div>
 
+    <div class="mt-4 text-center">
+    <label for="photoInput" class="cursor-pointer bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-[10px] font-bold inline-block uppercase tracking-wider">
+        📸 Ajouter une photo
+    </label>
+    <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="gererPhoto(event)">
+</div>
+
     <div id="modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-6 backdrop-blur-sm" style="z-index: 999;">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
             <h3 id="modalTitle" class="text-lg font-bold mb-4 text-center">Distance</h3>
