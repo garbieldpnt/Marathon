@@ -7,159 +7,159 @@ const distanceInput = document.getElementById('distanceInput');
 
 // --- FONCTIONS MOBILES ---
 function vibrer(type) {
-    if (!window.navigator.vibrate) return;
-    if (type === "succès") window.navigator.vibrate([50, 30, 50]);
-    else if (type === "pile") window.navigator.vibrate(200);
+	if (!window.navigator.vibrate) return;
+	if (type === "succès") window.navigator.vibrate([50, 30, 50]);
+	else if (type === "pile") window.navigator.vibrate(200);
 }
 
 function ouvrirPopup(type) {
-    typeEnCours = type;
-    idEnCours = null; 
-    const emoji = (type === 'K') ? '🦄' : '3️⃣';
-    document.getElementById('modalTitle').innerText = "Ajouter " + emoji + " (cm)";
-    modal.classList.remove('hidden');
-    distanceInput.focus();
+	typeEnCours = type;
+	idEnCours = null;
+	const emoji = (type === 'K') ? '🦄' : '3️⃣';
+	document.getElementById('modalTitle').innerText = "Ajouter " + emoji + " (cm)";
+	modal.classList.remove('hidden');
+	distanceInput.focus();
 }
 
 function modifierLigne(id) {
-    const ligne = activites.find(a => a.id === id);
-    if (ligne) {
-        idEnCours = id;
-        typeEnCours = ligne.type;
-        const emoji = (typeEnCours === 'K') ? '🦄' : '3️⃣';
-        document.getElementById('modalTitle').innerText = "Modifier " + emoji;
-        distanceInput.value = (ligne.valeurMetres * 100).toFixed(0);
-        modal.classList.remove('hidden');
-        distanceInput.focus();
-    }
+	const ligne = activites.find(a => a.id === id);
+	if (ligne) {
+    	idEnCours = id;
+    	typeEnCours = ligne.type;
+    	const emoji = (typeEnCours === 'K') ? '🦄' : '3️⃣';
+    	document.getElementById('modalTitle').innerText = "Modifier " + emoji;
+    	distanceInput.value = (ligne.valeurMetres * 100).toFixed(0);
+    	modal.classList.remove('hidden');
+    	distanceInput.focus();
+	}
 }
 
 function fermerPopup() {
-    modal.classList.add('hidden');
-    distanceInput.value = "";
+	modal.classList.add('hidden');
+	distanceInput.value = "";
 }
 
 function validerSaisie() {
-    const cm = parseFloat(distanceInput.value);
-    if (!isNaN(cm) && cm >= 0) {
-        const metres = cm / 100;
-        if (idEnCours !== null) {
-            const index = activites.findIndex(a => a.id === idEnCours);
-            if (cm === 0) activites.splice(index, 1);
-            else activites[index].valeurMetres = metres;
-        } else if (cm > 0) {
-            activites.unshift({
-                id: Date.now(),
-                date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                type: typeEnCours,
-                valeurMetres: metres
-            });
-        }
-        sauvegarderEtAfficher();
-        fermerPopup();
-    }
+	const cm = parseFloat(distanceInput.value);
+	if (!isNaN(cm) && cm >= 0) {
+    	const metres = cm / 100;
+    	if (idEnCours !== null) {
+        	const index = activites.findIndex(a => a.id === idEnCours);
+        	if (cm === 0) activites.splice(index, 1);
+        	else activites[index].valeurMetres = metres;
+    	} else if (cm > 0) {
+        	activites.unshift({
+            	id: Date.now(),
+            	date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+            	type: typeEnCours,
+            	valeurMetres: metres
+        	});
+    	}
+    	sauvegarderEtAfficher();
+    	fermerPopup();
+	}
 }
 
 // --- LOGIQUE PRINCIPALE ---
 function sauvegarderEtAfficher() {
-    localStorage.setItem('sport_data', JSON.stringify(activites));
+	localStorage.setItem('sport_data', JSON.stringify(activites));
     
-    let sumK = 0, sum3 = 0, html = "";
+	let sumK = 0, sum3 = 0, html = "";
 
-    activites.forEach(act => {
-        const isK = act.type === "K";
-        if(isK) sumK += act.valeurMetres; else sum3 += act.valeurMetres;
-        const valCm = (act.valeurMetres * 100).toFixed(0);
-        html += `
-            <div onclick="modifierLigne(${act.id})" class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm active:bg-slate-50">
-                <span class="text-xl">${isK ? '🦄' : '3️⃣'}</span>
-                <span class="text-[10px] text-slate-400 font-medium">${act.date}</span>
-                <p class="font-black text-slate-800">${valCm} <span class="text-[10px] font-normal text-slate-500 uppercase">cm</span></p>
-            </div>`;
-    });
+	activites.forEach(act => {
+    	const isK = act.type === "K";
+    	if(isK) sumK += act.valeurMetres; else sum3 += act.valeurMetres;
+    	const valCm = (act.valeurMetres * 100).toFixed(0);
+    	html += `
+        	<div onclick="modifierLigne(${act.id})" class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm active:bg-slate-50">
+            	<span class="text-xl">${isK ? '🦄' : '3️⃣'}</span>
+            	<span class="text-[10px] text-slate-400 font-medium">${act.date}</span>
+            	<p class="font-black text-slate-800">${valCm} <span class="text-[10px] font-normal text-slate-500 uppercase">cm</span></p>
+        	</div>`;
+	});
 
-    const totalGeneral = sumK + sum3;
+	const totalGeneral = sumK + sum3;
 
-    const megaBiblio = [
-    // --- PETITES DISTANCES (Musique & Tech) ---
-    { t: 0.02, n: "un fader de table de mixage 🎚️" },
-    { t: 0.05, n: "un bouchon d'oreille (indispensable !) 👂" },
-    { t: 0.12, n: "un disque vinyle 7 pouces 💿" },
-    { t: 0.30, n: "un vinyle 12 pouces (Maxi) 🎶" },
-    { t: 0.45, n: "une platine Technics SL-1200 🎧" },
-    { t: 1.00, n: "un câble XLR de 1 mètre 🔌" },
+	const megaBiblio = [
+	// --- PETITES DISTANCES (Musique & Tech) ---
+	{ t: 0.02, n: "un fader de table de mixage 🎚️" },
+	{ t: 0.05, n: "un bouchon d'oreille (indispensable !) 👂" },
+	{ t: 0.12, n: "un disque vinyle 7 pouces 💿" },
+	{ t: 0.30, n: "un vinyle 12 pouces (Maxi) 🎶" },
+	{ t: 0.45, n: "une platine Technics SL-1200 🎧" },
+	{ t: 1.00, n: "un câble XLR de 1 mètre 🔌" },
 
-    // --- ARTISTES & PERSONNAGES ---
-    { t: 1.57, n: "Fleur" },
-    { t: 1.65, n: "Anaïs" },
-    { t: 1.63, n: "Sara / Peggy Gou" },
-    { t: 1.70, n: "Gabriel / Charlotte de Witte " },
-    { t: 1.77, n: "Amelie Lens" },
-    { t: 1.83, n: "Carl Cox" },
-    { t: 1.88, n: "Jolan / un caisson de basse Funktion-One" },
-    { t: 1.93, n: "Nolan / un vigile" },
+	// --- ARTISTES & PERSONNAGES ---
+	{ t: 1.57, n: "Fleur" },
+	{ t: 1.65, n: "Anaïs" },
+	{ t: 1.63, n: "Sara / Peggy Gou" },
+	{ t: 1.70, n: "Gabriel / Charlotte de Witte " },
+	{ t: 1.77, n: "Amelie Lens" },
+	{ t: 1.83, n: "Carl Cox" },
+	{ t: 1.88, n: "Jolan / un caisson de basse Funktion-One" },
+	{ t: 1.93, n: "Nolan / un vigile" },
 
-    // --- MARSEILLE ICONIQUE ---
-    { t: 2.50, n: "une colonne du Palais Longchamp 🏛️" },
-    { t: 5.00, n: "la statue du David (Prado) 🗿" },
-    { t: 11.2, n: "la statue de la 'Bonne Mère' (sans le clocher) ⛪" },
-    { t: 14.0, n: "un grand palmier du Vieux-Port 🌴" },
-    { t: 25.0, n: "le bus 83 qui longe la Corniche 🚌" },
-    { t: 36.0, n: "le Pavillon M 🏢" },
-    { t: 45.0, n: "le Château d'If (hauteur des remparts) 🏰" },
-    { t: 60.0, n: "le toit de l'Orange Vélodrome 🏟️" },
-    { t: 86.0, n: "la Grande Roue du Vieux-Port 🎡" },
-    { t: 149, n: "le sommet de Notre-Dame de la Garde ⛪" },
-    { t: 161, n: "la Tour CMA CGM 🏙️" },
+	// --- MARSEILLE ICONIQUE ---
+	{ t: 2.50, n: "une colonne du Palais Longchamp 🏛️" },
+	{ t: 5.00, n: "la statue du David (Prado) 🗿" },
+	{ t: 11.2, n: "la statue de la 'Bonne Mère' (sans le clocher) ⛪" },
+	{ t: 14.0, n: "un grand palmier du Vieux-Port 🌴" },
+	{ t: 25.0, n: "le bus 83 qui longe la Corniche 🚌" },
+	{ t: 36.0, n: "le Pavillon M 🏢" },
+	{ t: 45.0, n: "le Château d'If (hauteur des remparts) 🏰" },
+	{ t: 60.0, n: "le toit de l'Orange Vélodrome 🏟️" },
+	{ t: 86.0, n: "la Grande Roue du Vieux-Port 🎡" },
+	{ t: 149, n: "le sommet de Notre-Dame de la Garde ⛪" },
+	{ t: 161, n: "la Tour CMA CGM 🏙️" },
 
-    // --- GRANDS DELIRES ---
-    { t: 300, n: "une file d'attente interminable devant le Berghain 🇩🇪" },
-    { t: 828, n: "le Burj Khalifa 🏗️" },
-    { t: 1000, n: "1 km!!! (c'est beaucoupr trop seek help Xays)" },
-    { t: 42195, n: "UN MARATHON C'EST UN FUCKING MARATHON PAR PITIE C'EST UNE BLAGUE" },
+	// --- GRANDS DELIRES ---
+	{ t: 300, n: "une file d'attente interminable devant le Berghain 🇩🇪" },
+	{ t: 828, n: "le Burj Khalifa 🏗️" },
+	{ t: 1000, n: "1 km!!! (c'est beaucoupr trop seek help Xays)" },
+	{ t: 42195, n: "UN MARATHON C'EST UN FUCKING MARATHON PAR PITIE C'EST UNE BLAGUE" },
 ];
 
-    // Trouver meilleur match
-    let meilleurMatch = megaBiblio[0];
-    let diffMin = Math.abs(totalGeneral - megaBiblio[0].t);
-    megaBiblio.forEach(item => {
-        let diff = Math.abs(totalGeneral - item.t);
-        if (diff < diffMin) { diffMin = diff; meilleurMatch = item; }
-    });
+	// Trouver meilleur match
+	let meilleurMatch = megaBiblio[0];
+	let diffMin = Math.abs(totalGeneral - megaBiblio[0].t);
+	megaBiblio.forEach(item => {
+    	let diff = Math.abs(totalGeneral - item.t);
+    	if (diff < diffMin) { diffMin = diff; meilleurMatch = item; }
+	});
 
-    // Message et Effets
-    const ecart = Math.abs(totalGeneral - meilleurMatch.t);
-    let msg = "";
-    if (ecart < 0.001 && totalGeneral > 0) {
-        msg = `C'est <b>exactement</b> la taille de <b>${meilleurMatch.n}</b> ! 🎯`;
-        vibrer("pile");
-        new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
-    } else {
-        const ratio = (totalGeneral / (meilleurMatch.t || 1)).toFixed(1);
-        msg = totalGeneral > 0 ? `C'est environ <b>${ratio} x</b> la taille de <b>${meilleurMatch.n}</b>` : "En attente de data...";
-        if (idEnCours === null && activites.length > 0) vibrer("succès");
-    }
+	// Message et Effets
+	const ecart = Math.abs(totalGeneral - meilleurMatch.t);
+	let msg = "";
+	if (ecart < 0.001 && totalGeneral > 0) {
+    	msg = `C'est <b>exactement</b> la taille de <b>${meilleurMatch.n}</b> ! 🎯`;
+    	vibrer("pile");
+    	new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
+	} else {
+    	const ratio = (totalGeneral / (meilleurMatch.t || 1)).toFixed(1);
+    	msg = totalGeneral > 0 ? `C'est environ <b>${ratio} x</b> la taille de <b>${meilleurMatch.n}</b>` : "En attente de data...";
+    	if (idEnCours === null && activites.length > 0) vibrer("succès");
+	}
 
-    // Barre de progression
-    let prochain = megaBiblio.find(item => item.t > totalGeneral) || megaBiblio[megaBiblio.length - 1];
-    let actuelPourBarre = [...megaBiblio].reverse().find(item => item.t <= totalGeneral) || megaBiblio[0];
-    let pourcent = ((totalGeneral - actuelPourBarre.t) / (prochain.t - actuelPourBarre.t)) * 100;
+	// Barre de progression
+	let prochain = megaBiblio.find(item => item.t > totalGeneral) || megaBiblio[megaBiblio.length - 1];
+	let actuelPourBarre = [...megaBiblio].reverse().find(item => item.t <= totalGeneral) || megaBiblio[0];
+	let pourcent = ((totalGeneral - actuelPourBarre.t) / (prochain.t - actuelPourBarre.t)) * 100;
 
-    // Mise à jour DOM
-    document.getElementById('totalK').innerText = sumK.toFixed(2) + " m";
-    document.getElementById('total3').innerText = sum3.toFixed(2) + " m";
-    document.getElementById('totalGeneral').innerText = totalGeneral.toFixed(2) + " m";
-    document.getElementById('funFact').innerHTML = msg;
-    document.getElementById('progressBar').style.width = (totalGeneral >= 1000 ? 100 : Math.max(0, Math.min(pourcent, 100))) + "%";
-    document.getElementById('nextMilestone').innerText = totalGeneral < 1000 ? `Cap : ${prochain.n}` : "Gros record ! 🏆";
-    document.getElementById('listeActivites').innerHTML = html || "<p class='text-center text-slate-400 py-4 text-sm'>Ajoute ta première distance</p>";
+	// Mise à jour DOM
+	document.getElementById('totalK').innerText = sumK.toFixed(2) + " m";
+	document.getElementById('total3').innerText = sum3.toFixed(2) + " m";
+	document.getElementById('totalGeneral').innerText = totalGeneral.toFixed(2) + " m";
+	document.getElementById('funFact').innerHTML = msg;
+	document.getElementById('progressBar').style.width = (totalGeneral >= 1000 ? 100 : Math.max(0, Math.min(pourcent, 100))) + "%";
+	document.getElementById('nextMilestone').innerText = totalGeneral < 1000 ? `Cap : ${prochain.n}` : "Gros record ! 🏆";
+	document.getElementById('listeActivites').innerHTML = html || "<p class='text-center text-slate-400 py-4 text-sm'>Ajoute ta première distance</p>";
 }
 
 function resetData() {
-    if(confirm("Effacer tout l'historique ?")) {
-        activites = [];
-        sauvegarderEtAfficher();
-    }
+	if(confirm("Effacer tout l'historique ?")) {
+    	activites = [];
+    	sauvegarderEtAfficher();
+	}
 }
 
 // Lancement
@@ -168,112 +168,146 @@ sauvegarderEtAfficher();
 // Remplacez votre ancienne fonction partagerStats par celle-ci
 
 function partagerStats() {
-    // 1. Récupération des données existantes...
-    document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
-    document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
-    document.getElementById('shareTotalGeneral').innerText = document.getElementById('totalGeneral').innerText.replace(' m', '');
+	// 1. Récupération des données existantes...
+	document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
+	document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
+	document.getElementById('shareTotalGeneral').innerText = document.getElementById('totalGeneral').innerText.replace(' m', '');
 
-    // 2. Préparation du texte de comparaison
-    let rawFact = document.getElementById('funFact').innerText;
-    let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ");
-    // On enlève les émojis pour un look plus "clean" type poster
-    let texteFinal = cleanFact.replace(/🎯|🔥/g, '').toUpperCase();
+	// 2. Préparation du texte de comparaison
+	let rawFact = document.getElementById('funFact').innerText;
+	let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ");
+	// On enlève les émojis pour un look plus "clean" type poster
+	let texteFinal = cleanFact.replace(/🎯|🔥/g, '').toUpperCase();
 
-    // 3. INJECTION DANS LES DEUX CALQUES
-    // On remplit le calque du fond (Solid)
-    document.getElementById('shareFunFactSolid').innerText = texteFinal;
-    // On remplit le calque du dessus (Hollow)
-    document.getElementById('shareFunFactHollow').innerText = texteFinal;
+	// 3. INJECTION DANS LES DEUX CALQUES
+	// On remplit le calque du fond (Solid)
+	document.getElementById('shareFunFactSolid').innerText = texteFinal;
+	// On remplit le calque du dessus (Hollow)
+	document.getElementById('shareFunFactHollow').innerText = texteFinal;
 
-    const container = document.getElementById('shareCardContainer');
+	const container = document.getElementById('shareCardContainer');
 
-    // On attend que les polices soient prêtes
-    document.fonts.ready.then(() => {
-        html2canvas(container, {
-            backgroundColor: "#000",
-            scale: 2, // Pour une image haute définition
-            logging: false,
-        }).then(canvas => {
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'techno-stats.png', { type: 'image/png' });
-                if (navigator.share && navigator.canShare({ files: [file] })) {
-                    navigator.share({
-                        files: [file],
-                        title: 'TADAAA',
-                    });
-                } else {
-                    downloadImage(canvas.toDataURL());
-                }
-            });
-        });
-    });
+	// On attend que les polices soient prêtes
+	document.fonts.ready.then(() => {
+    	html2canvas(container, {
+        	backgroundColor: "#000",
+        	scale: 2, // Pour une image haute définition
+        	logging: false,
+    	}).then(canvas => {
+        	canvas.toBlob(blob => {
+            	const file = new File([blob], 'techno-stats.png', { type: 'image/png' });
+            	if (navigator.share && navigator.canShare({ files: [file] })) {
+                	navigator.share({
+                    	files: [file],
+                    	title: 'TADAAA',
+                	});
+            	} else {
+                	downloadImage(canvas.toDataURL());
+            	}
+        	});
+    	});
+	});
 }
 // Fonction utilitaire pour télécharger l'image (si le partage natif n'est pas possible)
 function downloadImage(dataUrl) {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = 'MesStatsTechno.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert("Votre carte de stats a été téléchargée !");
+	const link = document.createElement('a');
+	link.href = dataUrl;
+	link.download = 'MesStatsTechno.png';
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	alert("Votre carte de stats a été téléchargée !");
 }
 
 function gererPhoto(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('userPhoto').src = e.target.result;
-            document.getElementById('photoContainer').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
+	const file = event.target.files[0];
+	if (file) {
+    	const reader = new FileReader();
+    	reader.onload = function(e) {
+        	document.getElementById('userPhoto').src = e.target.result;
+        	document.getElementById('photoContainer').style.display = 'block';
+    	};
+    	reader.readAsDataURL(file);
+	}
 }
 
 // 1. Ouvre le menu
 function ouvrirMenuPartage() {
-    document.getElementById('photoModal').style.display = 'flex';
+	document.getElementById('photoModal').style.display = 'flex';
 }
 
 // 2. Ferme le menu
 function fermerModal() {
-    document.getElementById('photoModal').style.display = 'none';
+	document.getElementById('photoModal').style.display = 'none';
 }
 
 // 3. Option "Sans Photo" : Lance directement la capture
 function lancerGenerationSansPhoto() {
-    document.getElementById('photoContainer').style.display = 'none'; // Cache la photo au cas où
-    fermerModal();
-    partagerStats(); // Lance ta fonction principale de capture
+	document.getElementById('photoContainer').style.display = 'none'; // Cache la photo au cas où
+	fermerModal();
+	partagerStats(); // Lance ta fonction principale de capture
 }
 
-// 4. Option "Avec Photo" : Ouvre la galerie du téléphone
-function declencherAjoutPhoto() {
-    document.getElementById('imageInputTrigger').click();
+/* === FONCTION DE TRAITEMENT DE LA PHOTO (Version Corrigée) === */
+
+function traiterLaPhoto(input) {
+	// 1. Vérifie si un fichier a bien été sélectionné
+	if (input.files && input.files[0]) {
+   	 
+    	let reader = new FileReader();
+   	 
+    	reader.onload = function(event) {
+        	// A. On insère l'image dans la balise <img>
+        	// Assure-toi que l'ID 'userPhoto' existe bien dans ton HTML !
+        	let imgElement = document.getElementById('userPhoto');
+        	if(imgElement) {
+            	imgElement.src = event.target.result;
+        	} else {
+            	alert("Erreur : Impossible de trouver l'emplacement de la photo (ID 'userPhoto' introuvable).");
+            	return;
+        	}
+       	 
+        	// B. On affiche le conteneur de la photo
+        	document.getElementById('photoContainer').style.display = 'block';
+       	 
+        	// C. On ferme le menu
+        	fermerModal();
+       	 
+        	// D. On lance la capture après une petite pause
+        	// La pause est essentielle sur iPhone pour laisser le temps à l'image de s'afficher
+        	setTimeout(function() {
+            	partagerStats();
+        	}, 500); // J'ai augmenté à 500ms pour être sûr
+    	}
+   	 
+    	// Lecture du fichier
+    	reader.readAsDataURL(input.files[0]);
+	}
 }
+
+
 
 // 5. Quand l'utilisateur a choisi une image
 document.getElementById('imageInputTrigger').addEventListener('change', function(e) {
-    if (e.target.files && e.target.files[0]) {
-        let reader = new FileReader();
-        
-        reader.onload = function(event) {
-            // Affiche l'image choisie
-            document.getElementById('userPhoto').src = event.target.result;
-            document.getElementById('photoContainer').style.display = 'block';
-            
-            // Ferme le menu
-            fermerModal();
-            
-            // Attend un tout petit peu que l'image s'affiche, puis lance la capture
-            setTimeout(function() {
-                partagerStats();
-            }, 200);
-        }
-        
-        reader.readAsDataURL(e.target.files[0]);
-    }
+	if (e.target.files && e.target.files[0]) {
+    	let reader = new FileReader();
+   	 
+    	reader.onload = function(event) {
+        	// Affiche l'image choisie
+        	document.getElementById('userPhoto').src = event.target.result;
+        	document.getElementById('photoContainer').style.display = 'block';
+       	 
+        	// Ferme le menu
+        	fermerModal();
+       	 
+        	// Attend un tout petit peu que l'image s'affiche, puis lance la capture
+        	setTimeout(function() {
+            	partagerStats();
+        	}, 200);
+    	}
+   	 
+    	reader.readAsDataURL(e.target.files[0]);
+	}
 });
 
 /* === SYSTÈME DE SAUVEGARDE MANUELLE === */
@@ -281,70 +315,113 @@ document.getElementById('imageInputTrigger').addEventListener('change', function
 /* === NOUVELLE VERSION : SAUVEGARDE === */
 
 function copierDonnees() {
-    // On crée un objet propre avec uniquement tes données
-    // (Ça évite de copier des trucs système inutiles)
-    const sauvegarde = JSON.stringify(localStorage);
+	// On crée un objet propre avec uniquement tes données
+	// (Ça évite de copier des trucs système inutiles)
+	const sauvegarde = JSON.stringify(localStorage);
     
-    if (sauvegarde === "{}" || sauvegarde === "[]") {
-        alert("Il va falloir taper un peu avant!");
-        return;
-    }
+	if (sauvegarde === "{}" || sauvegarde === "[]") {
+    	alert("Il va falloir taper un peu avant!");
+    	return;
+	}
 
-    navigator.clipboard.writeText(sauvegarde).then(() => {
-        alert("✅ Données copiées dans le presse-papier !");
-    }).catch(err => {
-        alert("❌ Impossible de copier automatiquement.\nErreur : " + err);
-    });
+	navigator.clipboard.writeText(sauvegarde).then(() => {
+    	alert("✅ Données copiées dans le presse-papier !");
+	}).catch(err => {
+    	alert("❌ Impossible de copier automatiquement.\nErreur : " + err);
+	});
 }
 
 /* === NOUVELLE VERSION : RESTAURATION ROBUSTE === */
 
 async function collerDonnees() {
-    try {
-        // 1. On demande l'accès au presse-papier
-        // Sur iPhone, une petite bulle "Coller depuis Safari ?" va apparaître
-        const textePressePapier = await navigator.clipboard.readText();
+	try {
+    	// 1. On demande l'accès au presse-papier
+    	// Sur iPhone, une petite bulle "Coller depuis Safari ?" va apparaître
+    	const textePressePapier = await navigator.clipboard.readText();
 
-        if (!textePressePapier) {
-            alert("❌ Le presse-papier est vide ou l'accès a été refusé.");
-            return;
-        }
+    	if (!textePressePapier) {
+        	alert("❌ Le presse-papier est vide ou l'accès a été refusé.");
+        	return;
+    	}
 
-        // 2. On vérifie si ça ressemble à du JSON
-        if (!textePressePapier.startsWith("{")) {
-            alert("Appuie sur le bouton sauvegarder d'abord!");
-            return;
-        }
+    	// 2. On vérifie si ça ressemble à du JSON
+    	if (!textePressePapier.startsWith("{")) {
+        	alert("Appuie sur le bouton sauvegarder d'abord!");
+        	return;
+    	}
 
-        // 3. On essaie de convertir le texte en données
-        const donnees = JSON.parse(textePressePapier);
-        
-        // 4. On vide l'app actuelle pour éviter les conflits
-        localStorage.clear();
+    	// 3. On essaie de convertir le texte en données
+    	const donnees = JSON.parse(textePressePapier);
+   	 
+    	// 4. On vide l'app actuelle pour éviter les conflits
+    	localStorage.clear();
 
-        // 5. On remplit avec les nouvelles données
-        let compteur = 0;
-        for (const [cle, valeur] of Object.entries(donnees)) {
-            localStorage.setItem(cle, valeur);
-            compteur++;
-        }
+    	// 5. On remplit avec les nouvelles données
+    	let compteur = 0;
+    	for (const [cle, valeur] of Object.entries(donnees)) {
+        	localStorage.setItem(cle, valeur);
+        	compteur++;
+    	}
 
-        alert(`✅ Données valides ! La page va recharger.`);
+    	alert(`✅ Données valides ! La page va recharger.`);
 try {
-    // Méthode 1 : Standard
-    window.location.reload();
+	// Méthode 1 : Standard
+	window.location.reload();
 } catch (e) {
-    // Méthode 2 : Si CodePen bloque, on force la réassignation de l'URL
-    window.location.href = window.location.href;
+	// Méthode 2 : Si CodePen bloque, on force la réassignation de l'URL
+	window.location.href = window.location.href;
 }
-    } catch (erreur) {
-        console.error(erreur);
-        // Si l'erreur est liée au format JSON
-        if (erreur instanceof SyntaxError) {
-            alert("❌ Erreur de format : Le texte copié est incomplet ou corrompu.");
-        } else {
-            // Si l'erreur est liée aux permissions ou autre
-            alert("❌ Erreur technique : " + erreur.message + "\n(Essaie de copier à nouveau tes données)");
-        }
-    }
+	} catch (erreur) {
+    	console.error(erreur);
+    	// Si l'erreur est liée au format JSON
+    	if (erreur instanceof SyntaxError) {
+        	alert("❌ Erreur de format : Le texte copié est incomplet ou corrompu.");
+    	} else {
+        	// Si l'erreur est liée aux permissions ou autre
+        	alert("❌ Erreur technique : " + erreur.message + "\n(Essaie de copier à nouveau tes données)");
+    	}
+	}
+}
+
+/* ================================================= */
+/* FONCTIONS MANQUANTES POUR LA PHOTO ET LE MENU	*/
+/* ================================================= */
+
+// 1. Cette fonction est appelée quand tu cliques sur "Ajouter ma photo"
+function declencherAjoutPhoto() {
+	// On simule un clic sur l'input caché
+	const input = document.getElementById('imageInputTrigger');
+	if (input) {
+    	input.click();
+	} else {
+    	alert("Erreur : Je ne trouve pas la balise input (imageInputTrigger)");
+	}
+}
+
+// 2. Cette fonction est appelée automatiquement quand une image est choisie
+// (Grâce au onchange="traiterLaPhoto(this)" dans le HTML)
+function traiterLaPhoto(input) {
+	if (input.files && input.files[0]) {
+    	let reader = new FileReader();
+   	 
+    	reader.onload = function(event) {
+        	// A. On met l'image dans la balise <img>
+        	let imgElement = document.getElementById('userPhoto');
+        	if (imgElement) {
+            	imgElement.src = event.target.result;
+           	 
+            	// B. On affiche le calque de la photo
+            	document.getElementById('photoContainer').style.display = 'block';
+           	 
+            	// C. On ferme le menu popup
+            	fermerModal();
+           	 
+            	// D. On attend 500ms puis on génère l'image
+            	setTimeout(function() {
+                	partagerStats();
+            	}, 500);
+        	}
+    	}
+    	reader.readAsDataURL(input.files[0]);
+	}
 }
