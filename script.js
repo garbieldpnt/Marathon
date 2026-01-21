@@ -243,35 +243,31 @@ function traiterLaPhoto(input) {
 }
 
 function partagerStats() {
-    // === DEBUG : Si ça bloque, décommente la ligne ci-dessous pour voir si la fonction se lance
-    // alert("Lancement de la génération...");
-
-    // 1. Remplissage des données (inchangé)
+    // -----------------------------------------------------------
+    // ÉTAPE 1 : PRÉPARATION DU TEXTE (Inchangé)
+    // -----------------------------------------------------------
+    
+    // Remplissage des chiffres
     const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
     document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
     document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
     document.getElementById('shareTotalGeneral').innerText = totalGen;
 
-    // 2. NETTOYAGE RADICAL (Garder uniquement le texte)
+    // Nettoyage Whitelist (Anti-Emoji)
     let rawFact = document.getElementById('funFact').innerText;
-    
-    // On enlève le baratin de début de phrase
     let cleanFact = rawFact
         .replace("C'est environ ", "")
         .replace("C'est exactement la taille de ", "PILE : ")
         .replace("En attente de data...", "");
 
-    // LA FORMULE MAGIQUE
-    // [^ ... ] signifie "Tout ce qui n'est PAS dans cette liste"
-    // La liste contient : a-z, 0-9, les accents français (àâé...), la ponctuation et les espaces (\s)
     let texteFinal = cleanFact
-        .replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '') 
-        .trim() // Enlève les espaces vides qui resteraient au début ou à la fin
-        .toUpperCase(); // On met tout en majuscules
+        .replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '')
+        .trim()
+        .toUpperCase();
 
-    // Sécurité : Si jamais on a tout effacé par erreur
     if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
-    // Resize Auto
+
+    // Auto-Resize
     let taillePolice = 38;
     const nbCaractères = texteFinal.length;
     if (nbCaractères > 60) taillePolice = 22;
@@ -285,37 +281,68 @@ function partagerStats() {
     solidText.innerText = texteFinal;
     hollowText.innerText = texteFinal;
 
-    // 3. Génération de l'image (AVEC GESTION D'ERREUR)
-    const container = document.getElementById('shareCardContainer');
+    // -----------------------------------------------------------
+    // ÉTAPE 2 : CLONAGE UNIQUE (La Correction)
+    // -----------------------------------------------------------
+
+    // NETTOYAGE AGRESSIF : On supprime TOUS les anciens clones qui traîneraient
+    // On utilise une classe 'temp-clone-trash' pour les repérer
+    document.querySelectorAll('.temp-clone-trash').forEach(el => el.remove());
+
+    const original = document.getElementById('shareCardContainer');
+    const clone = original.cloneNode(true);
     
-    // On s'assure que le conteneur est visible pour html2canvas
-    // (Même s'il est hors écran, il doit être en display block/flex)
-    container.style.display = "block"; 
+    // GÉNÉRATION D'UN ID UNIQUE (Basé sur l'heure exacte)
+    // Comme ça, impossible d'avoir un conflit de nom
+    const uniqueID = "clone_" + Date.now(); 
+    clone.id = uniqueID;
+    
+    // On ajoute une classe spéciale pour pouvoir le supprimer facilement après
+    clone.classList.add('temp-clone-trash');
 
-    document.fonts.ready.then(() => {
-        html2canvas(container, {
+    // Style pour le cacher derrière mais le garder "existant"
+    clone.style.width = "400px";
+    clone.style.height = "400px";
+    clone.style.position = "fixed";
+    clone.style.top = "0";
+    clone.style.left = "0";
+    clone.style.zIndex = "-9999"; // Derrière tout
+    clone.style.display = "block"; 
+    
+    document.body.appendChild(clone);
+
+    // -----------------------------------------------------------
+    // ÉTAPE 3 : GÉNÉRATION
+    // -----------------------------------------------------------
+
+    setTimeout(() => {
+        // On cible bien NOTRE clone unique
+        const elementToCapture = document.getElementById(uniqueID);
+
+        if (!elementToCapture) {
+            alert("Erreur : Le clone a disparu avant la photo.");
+            return;
+        }
+
+        html2canvas(elementToCapture, {
             backgroundColor: "#bc13fe",
-            scale: 1, // ⚠️ SI ÇA PLANTE ENCORE : Mets 1 à la place de 2 ici
+            scale: 1, // On garde 1 pour la stabilité sur iPhone
             useCORS: true,
-            logging: true, // Active les logs dans la console
-            allowTaint: true, // Important pour les images locales
+            logging: false,
         }).then(canvas => {
-            canvas.toBlob(blob => {
-                if (!blob) {
-                    alert("Erreur : L'image générée est vide.");
-                    return;
-                }
+            // Une fois fini, on supprime ce clone précis
+            elementToCapture.remove();
 
+            canvas.toBlob(blob => {
+                if (!blob) return;
+                
                 const file = new File([blob], 'my-wrapped.png', { type: 'image/png' });
                 
                 if (navigator.share && navigator.canShare({ files: [file] })) {
                     navigator.share({
                         files: [file],
                         title: 'My Wrapped',
-                    }).catch(err => {
-                        console.error("Erreur partage natif:", err);
-                        // Si le partage est annulé ou échoue, on ne fait rien (ou on alert)
-                    });
+                    }).catch(console.error);
                 } else {
                     const link = document.createElement('a');
                     link.href = canvas.toDataURL();
@@ -324,12 +351,15 @@ function partagerStats() {
                 }
             });
         }).catch(err => {
-            // C'EST ICI QUE TU VERRAS L'ERREUR
-            alert("Erreur lors de la création de l'image : " + err);
             console.error(err);
+            // En cas d'erreur, on nettoie quand même
+            if(document.getElementById(uniqueID)) {
+                document.getElementById(uniqueID).remove();
+            }
         });
-    });
+    }, 100);
 }
+
 
 // =============================================================
 // 5. SAUVEGARDE ET RESTAURATION
