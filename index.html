@@ -4,27 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tracker 🦄 3️⃣</title>
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="My Wrapped">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/garbieldpnt/Marathon/main/apple-touch-icon.png">   
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/garbieldpnt/Marathon/main/apple-touch-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-50 p-4">
+
+<body class="bg-slate-50 p-4 pb-20">
 
     <header class="mb-6">
         <h1 class="text-2xl font-bold text-center mb-4 text-slate-800">Mon Suivi</h1>
         <div class="grid grid-cols-2 gap-4">
-            <div class="card p-4 text-center border-l-4 border-purple-500">
+            <div class="card p-4 text-center border-l-4 border-purple-500 bg-white shadow-sm rounded-2xl">
                 <p class="text-2xl">🦄</p>
                 <p id="totalK" class="text-xl font-black text-purple-600">0.00 m</p>
             </div>
-            <div class="card p-4 text-center border-l-4 border-blue-600">
+            <div class="card p-4 text-center border-l-4 border-blue-600 bg-white shadow-sm rounded-2xl">
                 <p class="text-2xl">3️⃣</p>
                 <p id="total3" class="text-xl font-black text-blue-600">0.00 m</p>
             </div>
@@ -32,64 +33,75 @@
     </header>
 
     <div class="grid grid-cols-2 gap-4 mb-8">
-        <button onclick="ouvrirPopup('K')" class="bg-purple-500 text-white font-bold py-4 rounded-2xl shadow-lg">
+        <button onclick="ouvrirPopup('K')" class="bg-purple-500 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
             + 🦄
         </button>
-        <button onclick="ouvrirPopup('3')" class="bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">
+        <button onclick="ouvrirPopup('3')" class="bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
             + 3️⃣
         </button>
     </div>
 
-
-<div class="mb-4">
-    <div class="card p-4 bg-slate-800 border-b-4 border-slate-900 text-white">
-        <div class="flex justify-between items-center mb-2">
-            <p class="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Total Cumulé</p>
-            <p id="totalGeneral" class="text-2xl font-black italic">0.00 m</p>
+    <div class="mb-4">
+        <div class="card p-4 bg-slate-800 border-b-4 border-slate-900 text-white rounded-2xl">
+            <div class="flex justify-between items-center mb-2">
+                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Total Cumulé</p>
+                <p id="totalGeneral" class="text-2xl font-black italic">0.00 m</p>
+            </div>
+            <p id="funFact" class="text-center text-sm text-slate-300 border-t border-slate-700 pt-2 italic">
+                Commencez pour voir une comparaison !
+            </p>
+            <div class="mt-4 bg-slate-700 rounded-full h-2 w-full overflow-hidden">
+                <div id="progressBar" class="bg-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="nextMilestone" class="text-[10px] text-slate-400 mt-1 text-right italic uppercase tracking-widest">
+                Objectif : Statue de la Liberté
+            </p>
         </div>
-        <p id="funFact" class="text-center text-sm text-slate-300 border-t border-slate-700 pt-2 italic">
-            Commencez pour voir une comparaison !
-        </p>
-      <div class="mt-4 bg-slate-700 rounded-full h-2 w-full overflow-hidden">
-    <div id="progressBar" class="bg-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
-</div>
-<p id="nextMilestone" class="text-[10px] text-slate-400 mt-1 text-right italic uppercase tracking-widest">
-    Objectif : Statue de la Liberté
-</p>
     </div>
-</div>
-  <button onclick="ouvrirMenuPartage()" class="mt-4 w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all">
-    <span>Partager mes stats</span> 🚀
-</button>
-<div class="card p-4">
+
+    <button onclick="ouvrirMenuPartage()" class="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg mb-8">
+        Partager mes stats 🚀
+    </button>
+
+    <div class="card p-4 bg-white rounded-2xl shadow-sm">
         <h2 class="font-bold text-slate-700 mb-3 text-center">Historique</h2>
-        <div id="listeActivites" class="space-y-3 max-h-80 overflow-y-auto"></div>
+        <div id="listeActivites" class="space-y-3 max-h-60 overflow-y-auto"></div>
         <button onclick="resetData()" class="mt-6 text-xs text-red-400 w-full underline">Effacer tout</button>
-</div>
-  <div class="transfer-controls">
+    </div>
 
-    <button onclick="copierDonnees()" class="btn-data btn-save">
-        Sauvegarder
-    </button>
-    
-    <button onclick="collerDonnees()" class="btn-data btn-restore">
-        Restaurer
-    </button>
+    <div class="transfer-controls mt-6 flex gap-2">
+        <button onclick="copierDonnees()" class="btn-data btn-save flex-1">📤 Sauvegarder</button>
+        <button onclick="collerDonnees()" class="btn-data btn-restore flex-1">📥 Restaurer</button>
+    </div>
 
-</div>
-
-    <div class="mt-4 text-center">
-    <label for="photoInput" class="cursor-pointer bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-[10px] font-bold inline-block uppercase tracking-wider">
-        📸 Ajouter une photo
-    </label>
-    <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="gererPhoto(event)">
-</div>
+    <div id="shareCardContainer" style="position: absolute; left: -9999px; top: -9999px; width: 400px; height: 400px; background: #bc13fe; overflow: hidden; padding: 25px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif;">
+        <div style="position: absolute; top: 25px; left: 25px; z-index: 4; display: flex; flex-direction: column;">
+            <p id="shareTotalGeneral" style="font-size: 60px; font-weight: 800; color: white; line-height: 1; margin: 0;">0.00</p>
+            <p style="font-size: 18px; font-weight: 800; color: white; opacity: 0.9; margin: 0;">METERS</p>
+        </div>
+        <div id="photoContainer" style="position: absolute; top: -40px; right: -40px; width: 288px; height: 288px; z-index: 2; display: none;">
+            <img id="userPhoto" src="" style="width: 100%; height: 100%; object-fit: cover; mask-image: linear-gradient(to bottom left, black 60%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom left, black 60%, transparent 100%);">
+        </div>
+        <h2 id="shareFunFactSolid" style="position: absolute; bottom: 150px; left: 25px; z-index: 1; font-size: 38px; font-weight: 800; color: white; margin: 0; text-transform: uppercase; line-height: 0.95;"></h2>
+        <h2 id="shareFunFactHollow" style="position: absolute; bottom: 150px; left: 25px; z-index: 3; font-size: 38px; font-weight: 800; color: transparent; -webkit-text-stroke: 2px white; margin: 0; text-transform: uppercase; line-height: 0.95;"></h2>
+        <div style="position: absolute; bottom: 115px; left: 25px; right: 25px; z-index: 4; border-top: 2px solid white;"></div>
+        <div style="position: absolute; bottom: 50px; left: 25px; right: 25px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <p style="font-size: 30px; margin: 0;">🦄</p>
+                <p id="shareTotalK" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+            </div>
+            <div>
+                <p style="font-size: 30px; margin: 0;">3️⃣</p>
+                <p id="shareTotal3" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+            </div>
+        </div>
+        <p style="position: absolute; bottom: 20px; left: 25px; z-index: 4; font-size: 10px; font-weight: 800; color: black; opacity: 0.8; margin: 0; text-transform: uppercase;">Made by garbiel</p>
+    </div>
 
     <div id="modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-6 backdrop-blur-sm" style="z-index: 999;">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm">
-            <h3 id="modalTitle" class="text-lg font-bold mb-4 text-center">Distance</h3>
-            <input type="number" id="distanceInput" inputmode="numeric" placeholder="Entrez les cm" 
-                class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl p-4 text-xl mb-6 outline-none text-center focus:border-purple-500">
+            <h3 id="modalTitle" class="text-lg font-bold mb-4 text-center text-slate-800">Distance</h3>
+            <input type="number" id="distanceInput" inputmode="numeric" placeholder="Entrez les cm" class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl p-4 text-xl mb-6 text-center focus:border-purple-500 outline-none">
             <div class="flex gap-3">
                 <button onclick="fermerPopup()" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold">Annuler</button>
                 <button onclick="validerSaisie()" class="flex-1 py-4 bg-slate-900 text-white rounded-xl font-bold">Valider</button>
@@ -97,59 +109,21 @@
         </div>
     </div>
 
-<div id="shareCardContainer" style="position: absolute; left: -9999px; top: -9999px; width: 400px; height: 400px; background: #bc13fe; overflow: hidden; padding: 25px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; position: relative;">
-
-    <div style="position: absolute; top: 25px; left: 25px; z-index: 4; display: flex; flex-direction: column; align-items: flex-start;">
-        <p id="shareTotalGeneral" style="font-size: 60px; font-weight: 800; letter-spacing: -3px; line-height: 1; margin: 0; color: white;">
-            1.57
-        </p>
-        <p style="font-size: 18px; font-weight: 800; text-transform: uppercase; margin: 0; margin-top: 5px; letter-spacing: 1px; color: white; opacity: 0.9;">
-            METERS
-        </p>
-    </div>
-
-    <div id="photoContainer" style="position: absolute; top: -40px; right: -40px; width: 288px; height: 288px; z-index: 2; display: none;">
-        <img id="userPhoto" src="" style="width: 100%; height: 100%; object-fit: cover; mask-image: linear-gradient(to bottom left, black 60%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom left, black 60%, transparent 100%);">
-    </div>
-
-    <h2 id="shareFunFactSolid" style="position: absolute; bottom: 150px; left: 25px; z-index: 1; font-size: 38px; font-weight: 800; line-height: 0.95; letter-spacing: -2px; text-transform: uppercase; color: white; margin: 0; text-align: left; max-width: 90%;"></h2>
-    
-    <h2 id="shareFunFactHollow" style="position: absolute; bottom: 150px; left: 25px; z-index: 3; font-size: 38px; font-weight: 800; line-height: 0.95; letter-spacing: -2px; text-transform: uppercase; color: transparent; -webkit-text-stroke: 2px white; margin: 0; text-align: left; max-width: 90%;"></h2>
-
-    <div style="position: absolute; bottom: 115px; left: 25px; right: 25px; z-index: 4; border-top: 2px solid white;"></div>
-
-    <div style="position: absolute; bottom: 50px; left: 25px; right: 25px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div>
-            <p style="font-size: 30px; margin: 0; margin-bottom: 5px; line-height: 1;">🦄</p>
-            <p id="shareTotalK" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
-        </div>
-        <div>
-            <p style="font-size: 30px; margin: 0; margin-bottom: 5px; line-height: 1;">3️⃣</p>
-            <p id="shareTotal3" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+    <div id="photoModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Personnaliser ?</h3>
+            <p>Ajoute ta photo en fond ou garde le style classique.</p>
+            <div class="modal-actions">
+                <button onclick="declencherAjoutPhoto()" class="btn-modal btn-photo">📸 Ajouter ma photo</button>
+                <button onclick="lancerGenerationSansPhoto()" class="btn-modal btn-basic">Non, garder le violet</button>
+            </div>
+            <span onclick="fermerModal()" class="btn-cancel">Annuler</span>
         </div>
     </div>
 
-    <div style="position: absolute; bottom: 20px; left: 25px; z-index: 4; display: flex; align-items: center; gap: 8px;">
-        <p style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: black; margin: 0; opacity: 0.8;">
-            Made by garbiel
-        </p>
-    </div>
+    <input type="file" id="imageInputTrigger" accept="image/*" onchange="traiterLaPhoto(this)" style="position: absolute; opacity: 0; width: 1px; height: 1px; top: 0; left: 0; z-index: -1;">
 
-</div>
-  <input type="file" id="imageInputTrigger" accept="image/*" style="display: none;">
-
-<div id="photoModal" class="modal-overlay">
-    <div class="modal-card">
-        <h3>Personnaliser ?</h3>
-        <p>Tu peux ajouter ta propre photo en fond ou garder le style classique.</p>
-        <div class="modal-actions">
-            <button onclick="declencherAjoutPhoto()" class="btn-modal btn-photo">📸 Ajouter ma photo</button>
-            <button onclick="lancerGenerationSansPhoto()" class="btn-modal btn-basic">Non, garder le violet</button>
-        </div>
-        <span onclick="fermerModal()" class="btn-cancel">Annuler</span>
-    </div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
