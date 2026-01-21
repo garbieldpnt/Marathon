@@ -1,11 +1,18 @@
+// =============================================================
+// 1. CONFIGURATION & DONNÉES
+// =============================================================
 let activites = JSON.parse(localStorage.getItem('sport_data')) || [];
 let typeEnCours = "";
 let idEnCours = null;
 
+// Éléments DOM fréquemment utilisés
 const modal = document.getElementById('modal');
 const distanceInput = document.getElementById('distanceInput');
 
-// --- FONCTIONS MOBILES ---
+// =============================================================
+// 2. FONCTIONS DE SAISIE (Ajout / Modif)
+// =============================================================
+
 function vibrer(type) {
     if (!window.navigator.vibrate) return;
     if (type === "succès") window.navigator.vibrate([50, 30, 50]);
@@ -41,13 +48,20 @@ function fermerPopup() {
 
 function validerSaisie() {
     const cm = parseFloat(distanceInput.value);
+    
     if (!isNaN(cm) && cm >= 0) {
         const metres = cm / 100;
+        
         if (idEnCours !== null) {
+            // Modification ou Suppression
             const index = activites.findIndex(a => a.id === idEnCours);
-            if (cm === 0) activites.splice(index, 1);
-            else activites[index].valeurMetres = metres;
+            if (cm === 0) {
+                activites.splice(index, 1); // Suppression si 0
+            } else {
+                activites[index].valeurMetres = metres; // Modif
+            }
         } else if (cm > 0) {
+            // Création
             activites.unshift({
                 id: Date.now(),
                 date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
@@ -55,12 +69,23 @@ function validerSaisie() {
                 valeurMetres: metres
             });
         }
+        
         sauvegarderEtAfficher();
         fermerPopup();
     }
 }
 
-// --- LOGIQUE PRINCIPALE ---
+function resetData() {
+    if(confirm("Effacer tout l'historique ?")) {
+        activites = [];
+        sauvegarderEtAfficher();
+    }
+}
+
+// =============================================================
+// 3. LOGIQUE PRINCIPALE (Calculs & Affichage)
+// =============================================================
+
 function sauvegarderEtAfficher() {
     localStorage.setItem('sport_data', JSON.stringify(activites));
     
@@ -70,6 +95,7 @@ function sauvegarderEtAfficher() {
         const isK = act.type === "K";
         if(isK) sumK += act.valeurMetres; else sum3 += act.valeurMetres;
         const valCm = (act.valeurMetres * 100).toFixed(0);
+        
         html += `
             <div onclick="modifierLigne(${act.id})" class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm active:bg-slate-50">
                 <span class="text-xl">${isK ? '🦄' : '3️⃣'}</span>
@@ -79,9 +105,8 @@ function sauvegarderEtAfficher() {
     });
 
     const totalGeneral = sumK + sum3;
-
     const megaBiblio = [
-    // --- PETITES DISTANCES (Musique & Tech) ---
+        // --- PETITES DISTANCES (Musique & Tech) ---
     { t: 0.02, n: "un fader de table de mixage 🎚️" },
     { t: 0.05, n: "un bouchon d'oreille (indispensable !) 👂" },
     { t: 0.12, n: "un disque vinyle 7 pouces 💿" },
@@ -97,12 +122,13 @@ function sauvegarderEtAfficher() {
     { t: 1.77, n: "Amelie Lens" },
     { t: 1.83, n: "Carl Cox" },
     { t: 1.88, n: "Jolan / un caisson de basse Funktion-One" },
+    { t: 1.90, n: "Adrien askip" },  
     { t: 1.93, n: "Nolan / un vigile" },
 
     // --- MARSEILLE ICONIQUE ---
     { t: 2.50, n: "une colonne du Palais Longchamp 🏛️" },
     { t: 5.00, n: "la statue du David (Prado) 🗿" },
-    { t: 11.2, n: "la statue de la 'Bonne Mère' (sans le clocher) ⛪" },
+    { t: 11.2, n: "la statue de la 'Bonne Mère' (sans le clocher) " },
     { t: 14.0, n: "un grand palmier du Vieux-Port 🌴" },
     { t: 25.0, n: "le bus 83 qui longe la Corniche 🚌" },
     { t: 36.0, n: "le Pavillon M 🏢" },
@@ -111,15 +137,16 @@ function sauvegarderEtAfficher() {
     { t: 86.0, n: "la Grande Roue du Vieux-Port 🎡" },
     { t: 149, n: "le sommet de Notre-Dame de la Garde ⛪" },
     { t: 161, n: "la Tour CMA CGM 🏙️" },
+      
 
     // --- GRANDS DELIRES ---
     { t: 300, n: "une file d'attente interminable devant le Berghain 🇩🇪" },
     { t: 828, n: "le Burj Khalifa 🏗️" },
     { t: 1000, n: "1 km!!! (c'est beaucoupr trop seek help Xays)" },
     { t: 42195, n: "UN MARATHON C'EST UN FUCKING MARATHON PAR PITIE C'EST UNE BLAGUE" },
-];
+    ];
 
-    // Trouver meilleur match
+    // Trouver le meilleur match
     let meilleurMatch = megaBiblio[0];
     let diffMin = Math.abs(totalGeneral - megaBiblio[0].t);
     megaBiblio.forEach(item => {
@@ -127,13 +154,12 @@ function sauvegarderEtAfficher() {
         if (diff < diffMin) { diffMin = diff; meilleurMatch = item; }
     });
 
-    // Message et Effets
+    // Message Fun Fact
     const ecart = Math.abs(totalGeneral - meilleurMatch.t);
     let msg = "";
-    if (ecart < 0.001 && totalGeneral > 0) {
+    if (ecart < 0.005 && totalGeneral > 0) {
         msg = `C'est <b>exactement</b> la taille de <b>${meilleurMatch.n}</b> ! 🎯`;
         vibrer("pile");
-        new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play().catch(() => {});
     } else {
         const ratio = (totalGeneral / (meilleurMatch.t || 1)).toFixed(1);
         msg = totalGeneral > 0 ? `C'est environ <b>${ratio} x</b> la taille de <b>${meilleurMatch.n}</b>` : "En attente de data...";
@@ -155,196 +181,211 @@ function sauvegarderEtAfficher() {
     document.getElementById('listeActivites').innerHTML = html || "<p class='text-center text-slate-400 py-4 text-sm'>Ajoute ta première distance</p>";
 }
 
-function resetData() {
-    if(confirm("Effacer tout l'historique ?")) {
-        activites = [];
-        sauvegarderEtAfficher();
-    }
-}
+// =============================================================
+// 4. PARTAGE ET PHOTO (Le cœur du problème réglé)
+// =============================================================
 
-// Lancement
-sauvegarderEtAfficher();
-
-// Remplacez votre ancienne fonction partagerStats par celle-ci
-
-function partagerStats() {
-    // 1. Récupération des données existantes...
-    document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
-    document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
-    document.getElementById('shareTotalGeneral').innerText = document.getElementById('totalGeneral').innerText.replace(' m', '');
-
-    // 2. Préparation du texte de comparaison
-    let rawFact = document.getElementById('funFact').innerText;
-    let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ");
-    // On enlève les émojis pour un look plus "clean" type poster
-    let texteFinal = cleanFact.replace(/🎯|🔥/g, '').toUpperCase();
-
-    // 3. INJECTION DANS LES DEUX CALQUES
-    // On remplit le calque du fond (Solid)
-    document.getElementById('shareFunFactSolid').innerText = texteFinal;
-    // On remplit le calque du dessus (Hollow)
-    document.getElementById('shareFunFactHollow').innerText = texteFinal;
-
-    const container = document.getElementById('shareCardContainer');
-
-    // On attend que les polices soient prêtes
-    document.fonts.ready.then(() => {
-        html2canvas(container, {
-            backgroundColor: "#000",
-            scale: 2, // Pour une image haute définition
-            logging: false,
-        }).then(canvas => {
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'techno-stats.png', { type: 'image/png' });
-                if (navigator.share && navigator.canShare({ files: [file] })) {
-                    navigator.share({
-                        files: [file],
-                        title: 'TADAAA',
-                    });
-                } else {
-                    downloadImage(canvas.toDataURL());
-                }
-            });
-        });
-    });
-}
-// Fonction utilitaire pour télécharger l'image (si le partage natif n'est pas possible)
-function downloadImage(dataUrl) {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = 'MesStatsTechno.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert("Votre carte de stats a été téléchargée !");
-}
-
-function gererPhoto(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('userPhoto').src = e.target.result;
-            document.getElementById('photoContainer').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-// 1. Ouvre le menu
 function ouvrirMenuPartage() {
     document.getElementById('photoModal').style.display = 'flex';
 }
 
-// 2. Ferme le menu
 function fermerModal() {
     document.getElementById('photoModal').style.display = 'none';
 }
 
-// 3. Option "Sans Photo" : Lance directement la capture
 function lancerGenerationSansPhoto() {
-    document.getElementById('photoContainer').style.display = 'none'; // Cache la photo au cas où
+    document.getElementById('photoContainer').style.display = 'none'; 
     fermerModal();
-    partagerStats(); // Lance ta fonction principale de capture
+    partagerStats(); 
 }
 
-// 4. Option "Avec Photo" : Ouvre la galerie du téléphone
 function declencherAjoutPhoto() {
-    document.getElementById('imageInputTrigger').click();
+    // Simule un clic sur l'input caché
+    const input = document.getElementById('imageInputTrigger');
+    if(input) input.click();
+    else alert("Erreur: Input introuvable");
 }
 
-// 5. Quand l'utilisateur a choisi une image
-document.getElementById('imageInputTrigger').addEventListener('change', function(e) {
-    if (e.target.files && e.target.files[0]) {
+// Fonction appelée par le onchange="" du HTML
+function traiterLaPhoto(input) {
+    if (input.files && input.files[0]) {
+        // Petit message pour dire "Je travaille"
+        // (Optionnel, tu pourras l'enlever si ça t'agace)
+        // alert("Chargement de la photo..."); 
+
         let reader = new FileReader();
         
         reader.onload = function(event) {
-            // Affiche l'image choisie
-            document.getElementById('userPhoto').src = event.target.result;
-            document.getElementById('photoContainer').style.display = 'block';
+            let img = document.getElementById('userPhoto');
             
-            // Ferme le menu
-            fermerModal();
-            
-            // Attend un tout petit peu que l'image s'affiche, puis lance la capture
-            setTimeout(function() {
-                partagerStats();
-            }, 200);
+            if(img) {
+                // Étape critique : On définit ce qu'il se passe QUAND l'image est prête
+                img.onload = function() {
+                    console.log("Image chargée dans le DOM");
+                    document.getElementById('photoContainer').style.display = 'block';
+                    fermerModal();
+                    
+                    // On laisse une petite seconde au navigateur pour reprendre son souffle
+                    // avant de lancer le gros calcul html2canvas
+                    setTimeout(function() {
+                        partagerStats();
+                    }, 300);
+                };
+
+                // On injecte la source (ce qui déclenche le chargement ci-dessus)
+                img.src = event.target.result;
+            }
         }
         
-        reader.readAsDataURL(e.target.files[0]);
+        // On lit le fichier
+        reader.readAsDataURL(input.files[0]);
     }
-});
+}
 
-/* === SYSTÈME DE SAUVEGARDE MANUELLE === */
+function partagerStats() {
+    // === DEBUG : Si ça bloque, décommente la ligne ci-dessous pour voir si la fonction se lance
+    // alert("Lancement de la génération...");
 
-/* === NOUVELLE VERSION : SAUVEGARDE === */
+    // 1. Remplissage des données (inchangé)
+    const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
+    document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
+    document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
+    document.getElementById('shareTotalGeneral').innerText = totalGen;
 
-function copierDonnees() {
-    // On crée un objet propre avec uniquement tes données
-    // (Ça évite de copier des trucs système inutiles)
-    const sauvegarde = JSON.stringify(localStorage);
+    // 2. NETTOYAGE RADICAL (Garder uniquement le texte)
+    let rawFact = document.getElementById('funFact').innerText;
     
-    if (sauvegarde === "{}" || sauvegarde === "[]") {
-        alert("Il va falloir taper un peu avant!");
-        return;
-    }
+    // On enlève le baratin de début de phrase
+    let cleanFact = rawFact
+        .replace("C'est environ ", "")
+        .replace("C'est exactement la taille de ", "PILE : ")
+        .replace("En attente de data...", "");
 
-    navigator.clipboard.writeText(sauvegarde).then(() => {
-        alert("✅ Données copiées dans le presse-papier !");
-    }).catch(err => {
-        alert("❌ Impossible de copier automatiquement.\nErreur : " + err);
+    // LA FORMULE MAGIQUE
+    // [^ ... ] signifie "Tout ce qui n'est PAS dans cette liste"
+    // La liste contient : a-z, 0-9, les accents français (àâé...), la ponctuation et les espaces (\s)
+    let texteFinal = cleanFact
+        .replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '') 
+        .trim() // Enlève les espaces vides qui resteraient au début ou à la fin
+        .toUpperCase(); // On met tout en majuscules
+
+    // Sécurité : Si jamais on a tout effacé par erreur
+    if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
+    // Resize Auto
+    let taillePolice = 38;
+    const nbCaractères = texteFinal.length;
+    if (nbCaractères > 60) taillePolice = 22;
+    else if (nbCaractères > 40) taillePolice = 26;
+    else if (nbCaractères > 25) taillePolice = 30;
+
+    const solidText = document.getElementById('shareFunFactSolid');
+    const hollowText = document.getElementById('shareFunFactHollow');
+    solidText.style.fontSize = taillePolice + "px";
+    hollowText.style.fontSize = taillePolice + "px";
+    solidText.innerText = texteFinal;
+    hollowText.innerText = texteFinal;
+
+    // 3. Génération de l'image (AVEC GESTION D'ERREUR)
+    const container = document.getElementById('shareCardContainer');
+    
+    // On s'assure que le conteneur est visible pour html2canvas
+    // (Même s'il est hors écran, il doit être en display block/flex)
+    container.style.display = "block"; 
+
+    document.fonts.ready.then(() => {
+        html2canvas(container, {
+            backgroundColor: "#bc13fe",
+            scale: 1, // ⚠️ SI ÇA PLANTE ENCORE : Mets 1 à la place de 2 ici
+            useCORS: true,
+            logging: true, // Active les logs dans la console
+            allowTaint: true, // Important pour les images locales
+        }).then(canvas => {
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    alert("Erreur : L'image générée est vide.");
+                    return;
+                }
+
+                const file = new File([blob], 'my-wrapped.png', { type: 'image/png' });
+                
+                if (navigator.share && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'My Wrapped',
+                    }).catch(err => {
+                        console.error("Erreur partage natif:", err);
+                        // Si le partage est annulé ou échoue, on ne fait rien (ou on alert)
+                    });
+                } else {
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL();
+                    link.download = 'wrapped.png';
+                    link.click();
+                }
+            });
+        }).catch(err => {
+            // C'EST ICI QUE TU VERRAS L'ERREUR
+            alert("Erreur lors de la création de l'image : " + err);
+            console.error(err);
+        });
     });
 }
 
-/* === NOUVELLE VERSION : RESTAURATION ROBUSTE === */
+// =============================================================
+// 5. SAUVEGARDE ET RESTAURATION
+// =============================================================
+
+function copierDonnees() {
+    // CORRECTION : On force la conversion du Storage en véritable Objet JavaScript
+    // L'opérateur { ...localStorage } permet de cloner proprement les données
+    const donneesBrutes = { ...localStorage };
+    const sauvegarde = JSON.stringify(donneesBrutes);
+    
+    // Vérification de sécurité
+    if (sauvegarde === "{}" || Object.keys(donneesBrutes).length === 0) {
+        alert("⚠️ Il n'y a aucune donnée à sauvegarder (Historique vide).");
+        return;
+    }
+
+    navigator.clipboard.writeText(sauvegarde)
+        .then(() => alert("✅ Données copiées dans le presse-papier !\n\nTu peux maintenant aller sur l'autre version de l'app et cliquer sur 'Restaurer'."))
+        .catch(err => {
+            // Fallback si le presse-papier échoue (rare mais possible)
+            console.error(err);
+            alert("❌ Le copier-coller automatique a échoué.\nNous allons essayer une autre méthode.");
+            prompt("Copie ce texte manuellement :", sauvegarde);
+        });
+}
 
 async function collerDonnees() {
     try {
-        // 1. On demande l'accès au presse-papier
-        // Sur iPhone, une petite bulle "Coller depuis Safari ?" va apparaître
-        const textePressePapier = await navigator.clipboard.readText();
-
-        if (!textePressePapier) {
-            alert("❌ Le presse-papier est vide ou l'accès a été refusé.");
+        const text = await navigator.clipboard.readText();
+        if (!text || !text.startsWith("{")) {
+            alert("⚠️ Presse-papier vide ou invalide. Copie d'abord tes données.");
             return;
         }
 
-        // 2. On vérifie si ça ressemble à du JSON
-        if (!textePressePapier.startsWith("{")) {
-            alert("Appuie sur le bouton sauvegarder d'abord!");
-            return;
-        }
-
-        // 3. On essaie de convertir le texte en données
-        const donnees = JSON.parse(textePressePapier);
+        const data = JSON.parse(text);
         
-        // 4. On vide l'app actuelle pour éviter les conflits
+        // 1. On met à jour la base de données du navigateur
         localStorage.clear();
-
-        // 5. On remplit avec les nouvelles données
-        let compteur = 0;
-        for (const [cle, valeur] of Object.entries(donnees)) {
-            localStorage.setItem(cle, valeur);
-            compteur++;
+        for (const [key, val] of Object.entries(data)) {
+            localStorage.setItem(key, val);
         }
 
-        alert(`✅ Données valides ! La page va recharger.`);
-try {
-    // Méthode 1 : Standard
-    window.location.reload();
-} catch (e) {
-    // Méthode 2 : Si CodePen bloque, on force la réassignation de l'URL
-    window.location.href = window.location.href;
-}
-    } catch (erreur) {
-        console.error(erreur);
-        // Si l'erreur est liée au format JSON
-        if (erreur instanceof SyntaxError) {
-            alert("❌ Erreur de format : Le texte copié est incomplet ou corrompu.");
-        } else {
-            // Si l'erreur est liée aux permissions ou autre
-            alert("❌ Erreur technique : " + erreur.message + "\n(Essaie de copier à nouveau tes données)");
-        }
+        // 2. LA CORRECTION : On met à jour l'affichage SANS recharger la page
+        // On recharge la variable globale 'activites' avec les nouvelles données
+        activites = JSON.parse(localStorage.getItem('sport_data')) || [];
+        
+        // On lance la fonction principale qui recalcule tout
+        sauvegarderEtAfficher();
+
+        alert("✅ Données restaurées et affichage mis à jour !");
+        
+    } catch (e) {
+        alert("❌ Erreur : " + e.message);
     }
 }
+
+// Lancement au chargement de la page
+sauvegarderEtAfficher();
