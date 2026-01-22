@@ -185,6 +185,7 @@ function sauvegarderEtAfficher() {
 // 4. PARTAGE ET PHOTO (Le cœur du problème réglé)
 // =============================================================
 
+// 1. DÉCLENCHEURS
 function ouvrirMenuPartage() {
     document.getElementById('photoModal').style.display = 'flex';
 }
@@ -193,51 +194,44 @@ function fermerModal() {
     document.getElementById('photoModal').style.display = 'none';
 }
 
-function lancerGenerationSansPhoto() {
-    document.getElementById('photoContainer').style.display = 'none'; 
-    fermerModal();
-    partagerStats(); 
-}
-
 function declencherAjoutPhoto() {
     const input = document.getElementById('imageInputTrigger');
     if (input) {
-        // CORRECTION IMPORTANTE : On remet l'input à zéro.
-        // Cela permet de sélectionner la même photo plusieurs fois sans bloquer.
-        input.value = ""; 
+        input.value = ""; // Reset pour permettre de reprendre la même photo
         input.click();
-    } else {
-        alert("Erreur interne : Input photo introuvable.");
     }
 }
 
-// Fonction appelée par le onchange="" du HTML
+function lancerGenerationSansPhoto() {
+    document.getElementById('photoContainer').style.display = 'none';
+    fermerModal();
+    genererImageEtAfficherApercu();
+}
+
 function traiterLaPhoto(input) {
     if (input.files && input.files[0]) {
-        // 1. On ferme la modale tout de suite pour ne pas rester bloqué
-        fermerModal();
+        fermerModal(); // On ferme tout de suite pour fluidifier
 
-        // 2. On lit le fichier
         let reader = new FileReader();
         reader.onload = function(event) {
             let img = document.getElementById('userPhoto');
             if (img) {
                 img.src = event.target.result;
-                // On affiche le conteneur photo
                 document.getElementById('photoContainer').style.display = 'block';
                 
-                // On lance la génération après un court instant
+                // Petit délai pour l'affichage DOM avant capture
                 setTimeout(() => {
-                    partagerStats();
-                }, 500);
+                    genererImageEtAfficherApercu();
+                }, 300);
             }
         };
         reader.readAsDataURL(input.files[0]);
     }
 }
 
-function partagerStats() {
-    // 1. TEXTES & NETTOYAGE
+// 2. CŒUR DU SYSTÈME : GÉNÉRATION + APERÇU
+function genererImageEtAfficherApercu() {
+    // --- A. Préparation des textes ---
     const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
     document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
     document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
@@ -245,8 +239,6 @@ function partagerStats() {
 
     let rawFact = document.getElementById('funFact').innerText;
     let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ").replace("En attente de data...", "");
-    
-    // Nettoyage strict (Anti-Emoji)
     let texteFinal = cleanFact.replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '').trim().toUpperCase();
     if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
 
@@ -263,60 +255,103 @@ function partagerStats() {
     solidText.innerText = texteFinal;
     hollowText.innerText = texteFinal;
 
-    // 2. CLONAGE & NETTOYAGE MÉMOIRE
-    // On supprime TOUT ce qui ressemble à un clone précédent
-    document.querySelectorAll('[id^="clone_"]').forEach(el => el.remove());
-
+    // --- B. Clonage Propre ---
+    document.querySelectorAll('[id^="clone_"]').forEach(el => el.remove()); // Nettoyage
     const original = document.getElementById('shareCardContainer');
     const clone = original.cloneNode(true);
     const uniqueID = "clone_" + Date.now();
     clone.id = uniqueID;
     
-    // Style du clone
     Object.assign(clone.style, {
         position: 'fixed', top: '0', left: '0',
         width: '400px', height: '400px',
         zIndex: '-9999', display: 'block'
     });
-
     document.body.appendChild(clone);
 
-    // 3. GÉNÉRATION
+    // --- C. Capture ---
     setTimeout(() => {
         const target = document.getElementById(uniqueID);
         if(!target) return;
 
         html2canvas(target, {
             backgroundColor: "#bc13fe",
-            scale: 1, // Scale 1 pour éviter le crash mémoire sur iPhone
+            scale: 1, // Scale 1 pour stabilité iPhone
             useCORS: true,
             logging: false
         }).then(canvas => {
-            // Suppression immédiate du clone du DOM pour libérer la mémoire
-            target.remove();
+            target.remove(); // Ménage
 
             canvas.toBlob(blob => {
                 if (!blob) return;
-                const file = new File([blob], 'wrapped.png', { type: 'image/png' });
-
-                // Partage simple
-                if (navigator.share && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: 'My Wrapped' })
-                        .catch(e => console.log("Partage annulé"));
-                } else {
-                    // Fallback simple : Téléchargement
-                    const link = document.createElement('a');
-                    link.href = canvas.toDataURL();
-                    link.download = 'wrapped.png';
-                    link.click();
-                }
+                // AU LIEU DE PARTAGER DIRECTEMENT, ON LANCE L'APERÇU
+                afficherEcranValidation(blob);
             });
         }).catch(err => {
-            console.error(err);
             if(document.getElementById(uniqueID)) document.getElementById(uniqueID).remove();
-            alert("Erreur image. Réessaie une fois.");
+            alert("Erreur génération. Réessaie.");
         });
     }, 200);
+}
+
+// 3. NOUVELLE FONCTION : L'ÉCRAN INTERMÉDIAIRE
+function afficherEcranValidation(blob) {
+    const url = URL.createObjectURL(blob);
+    const file = new File([blob], 'wrapped.png', { type: 'image/png' });
+
+    // Création de l'interface en JS pur (pour ne pas toucher ton HTML)
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', backgroundColor: 'rgba(0,0,0,0.95)',
+        zIndex: '10000', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: '20px'
+    });
+
+    // Image
+    const img = document.createElement('img');
+    img.src = url;
+    Object.assign(img.style, {
+        width: '80%', maxWidth: '350px', borderRadius: '15px',
+        boxShadow: '0 0 20px rgba(188, 19, 254, 0.4)'
+    });
+
+    // Bouton Partager
+    const btnShare = document.createElement('button');
+    btnShare.innerHTML = "Envoyer 🚀";
+    Object.assign(btnShare.style, {
+        padding: '15px 30px', borderRadius: '50px', border: 'none',
+        backgroundColor: '#bc13fe', color: 'white', fontSize: '18px',
+        fontWeight: 'bold', cursor: 'pointer'
+    });
+
+    // Bouton Fermer
+    const btnClose = document.createElement('button');
+    btnClose.innerHTML = "Fermer";
+    Object.assign(btnClose.style, {
+        background: 'transparent', border: 'none', color: '#888',
+        marginTop: '10px', textDecoration: 'underline'
+    });
+
+    // ACTION AU CLIC (C'est ici que la magie opère pour iOS)
+    btnShare.onclick = () => {
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+            navigator.share({
+                files: [file],
+                title: 'My Wrapped'
+            }).then(() => {
+                document.body.removeChild(overlay); // Ferme après succès
+            }).catch(console.error);
+        } else {
+            alert("Appuie longuement sur l'image pour l'enregistrer !");
+        }
+    };
+
+    btnClose.onclick = () => document.body.removeChild(overlay);
+
+    overlay.appendChild(img);
+    overlay.appendChild(btnShare);
+    overlay.appendChild(btnClose);
+    document.body.appendChild(overlay);
 }
 
 
