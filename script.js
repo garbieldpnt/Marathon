@@ -1,259 +1,12 @@
-// =============================================================
-// 1. CONFIGURATION & DONNÉES
-// =============================================================
-let activites = JSON.parse(localStorage.getItem('sport_data')) || [];
-let typeEnCours = "";
-let idEnCours = null;
-
-// Éléments DOM fréquemment utilisés
-const modal = document.getElementById('modal');
-const distanceInput = document.getElementById('distanceInput');
-
-// =============================================================
-// 2. FONCTIONS DE SAISIE (Ajout / Modif)
-// =============================================================
-
-function vibrer(type) {
-    if (!window.navigator.vibrate) return;
-    if (type === "succès") window.navigator.vibrate([50, 30, 50]);
-    else if (type === "pile") window.navigator.vibrate(200);
-}
-
-function ouvrirPopup(type) {
-    typeEnCours = type;
-    idEnCours = null; 
-    const emoji = (type === 'K') ? '🦄' : '3️⃣';
-    document.getElementById('modalTitle').innerText = "Ajouter " + emoji + " (cm)";
-    modal.classList.remove('hidden');
-    distanceInput.focus();
-}
-
-function modifierLigne(id) {
-    const ligne = activites.find(a => a.id === id);
-    if (ligne) {
-        idEnCours = id;
-        typeEnCours = ligne.type;
-        const emoji = (typeEnCours === 'K') ? '🦄' : '3️⃣';
-        document.getElementById('modalTitle').innerText = "Modifier " + emoji;
-        distanceInput.value = (ligne.valeurMetres * 100).toFixed(0);
-        modal.classList.remove('hidden');
-        distanceInput.focus();
-    }
-}
-
-function fermerPopup() {
-    modal.classList.add('hidden');
-    distanceInput.value = "";
-}
-
-function validerSaisie() {
-    const cm = parseFloat(distanceInput.value);
-    
-    if (!isNaN(cm) && cm >= 0) {
-        const metres = cm / 100;
-        
-        if (idEnCours !== null) {
-            // Modification ou Suppression
-            const index = activites.findIndex(a => a.id === idEnCours);
-            if (cm === 0) {
-                activites.splice(index, 1); // Suppression si 0
-            } else {
-                activites[index].valeurMetres = metres; // Modif
-            }
-        } else if (cm > 0) {
-            // Création
-            activites.unshift({
-                id: Date.now(),
-                date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                type: typeEnCours,
-                valeurMetres: metres
-            });
-        }
-        
-        sauvegarderEtAfficher();
-        fermerPopup();
-    }
-}
-
-function resetData() {
-    if(confirm("Effacer tout l'historique ?")) {
-        activites = [];
-        sauvegarderEtAfficher();
-    }
-}
-
-// =============================================================
-// 3. LOGIQUE PRINCIPALE (Calculs & Affichage)
-// =============================================================
-
-function sauvegarderEtAfficher() {
-    localStorage.setItem('sport_data', JSON.stringify(activites));
-    
-    let sumK = 0, sum3 = 0, html = "";
-
-    activites.forEach(act => {
-        const isK = act.type === "K";
-        if(isK) sumK += act.valeurMetres; else sum3 += act.valeurMetres;
-        const valCm = (act.valeurMetres * 100).toFixed(0);
-        
-        html += `
-            <div onclick="modifierLigne(${act.id})" class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm active:bg-slate-50">
-                <span class="text-xl">${isK ? '🦄' : '3️⃣'}</span>
-                <span class="text-[10px] text-slate-400 font-medium">${act.date}</span>
-                <p class="font-black text-slate-800">${valCm} <span class="text-[10px] font-normal text-slate-500 uppercase">cm</span></p>
-            </div>`;
-    });
-
-    const totalGeneral = sumK + sum3;
-    const megaBiblio = [
-        // --- PETITES DISTANCES (Musique & Tech) ---
-    { t: 0.02, n: "un fader de table de mixage 🎚️" },
-    { t: 0.05, n: "un bouchon d'oreille (indispensable !) 👂" },
-    { t: 0.12, n: "un disque vinyle 7 pouces 💿" },
-    { t: 0.30, n: "un vinyle 12 pouces (Maxi) 🎶" },
-    { t: 0.45, n: "une platine Technics SL-1200 🎧" },
-    { t: 1.00, n: "un câble XLR de 1 mètre 🔌" },
-
-    // --- ARTISTES & PERSONNAGES ---
-    { t: 1.57, n: "Fleur" },
-    { t: 1.65, n: "Anaïs" },
-    { t: 1.63, n: "Sara / Peggy Gou" },
-    { t: 1.70, n: "Gabriel / Charlotte de Witte " },
-    { t: 1.77, n: "Amelie Lens" },
-    { t: 1.83, n: "Carl Cox" },
-    { t: 1.88, n: "Jolan / un caisson de basse Funktion-One" },
-    { t: 1.90, n: "Adrien askip" },  
-    { t: 1.93, n: "Nolan / un vigile" },
-
-    // --- MARSEILLE ICONIQUE ---
-    { t: 2.50, n: "une colonne du Palais Longchamp 🏛️" },
-    { t: 5.00, n: "la statue du David (Prado) 🗿" },
-    { t: 11.2, n: "la statue de la 'Bonne Mère' (sans le clocher) " },
-    { t: 14.0, n: "un grand palmier du Vieux-Port 🌴" },
-    { t: 25.0, n: "le bus 83 qui longe la Corniche 🚌" },
-    { t: 36.0, n: "le Pavillon M 🏢" },
-    { t: 45.0, n: "le Château d'If (hauteur des remparts) 🏰" },
-    { t: 60.0, n: "le toit de l'Orange Vélodrome 🏟️" },
-    { t: 86.0, n: "la Grande Roue du Vieux-Port 🎡" },
-    { t: 149, n: "le sommet de Notre-Dame de la Garde ⛪" },
-    { t: 161, n: "la Tour CMA CGM 🏙️" },
-      
-
-    // --- GRANDS DELIRES ---
-    { t: 300, n: "une file d'attente interminable devant le Berghain 🇩🇪" },
-    { t: 828, n: "le Burj Khalifa 🏗️" },
-    { t: 1000, n: "1 km!!! (c'est beaucoupr trop seek help Xays)" },
-    { t: 42195, n: "UN MARATHON C'EST UN FUCKING MARATHON PAR PITIE C'EST UNE BLAGUE" },
-    ];
-
-    // Trouver le meilleur match
-    let meilleurMatch = megaBiblio[0];
-    let diffMin = Math.abs(totalGeneral - megaBiblio[0].t);
-    megaBiblio.forEach(item => {
-        let diff = Math.abs(totalGeneral - item.t);
-        if (diff < diffMin) { diffMin = diff; meilleurMatch = item; }
-    });
-
-    // Message Fun Fact
-    const ecart = Math.abs(totalGeneral - meilleurMatch.t);
-    let msg = "";
-    if (ecart < 0.005 && totalGeneral > 0) {
-        msg = `C'est <b>exactement</b> la taille de <b>${meilleurMatch.n}</b> ! 🎯`;
-        vibrer("pile");
-    } else {
-        const ratio = (totalGeneral / (meilleurMatch.t || 1)).toFixed(1);
-        msg = totalGeneral > 0 ? `C'est environ <b>${ratio} x</b> la taille de <b>${meilleurMatch.n}</b>` : "En attente de data...";
-        if (idEnCours === null && activites.length > 0) vibrer("succès");
-    }
-
-    // Barre de progression
-    let prochain = megaBiblio.find(item => item.t > totalGeneral) || megaBiblio[megaBiblio.length - 1];
-    let actuelPourBarre = [...megaBiblio].reverse().find(item => item.t <= totalGeneral) || megaBiblio[0];
-    let pourcent = ((totalGeneral - actuelPourBarre.t) / (prochain.t - actuelPourBarre.t)) * 100;
-
-    // Mise à jour DOM
-    document.getElementById('totalK').innerText = sumK.toFixed(2) + " m";
-    document.getElementById('total3').innerText = sum3.toFixed(2) + " m";
-    document.getElementById('totalGeneral').innerText = totalGeneral.toFixed(2) + " m";
-    document.getElementById('funFact').innerHTML = msg;
-    document.getElementById('progressBar').style.width = (totalGeneral >= 1000 ? 100 : Math.max(0, Math.min(pourcent, 100))) + "%";
-    document.getElementById('nextMilestone').innerText = totalGeneral < 1000 ? `Cap : ${prochain.n}` : "Gros record ! 🏆";
-    document.getElementById('listeActivites').innerHTML = html || "<p class='text-center text-slate-400 py-4 text-sm'>Ajoute ta première distance</p>";
-}
-
-// =============================================================
-// 4. PARTAGE ET PHOTO (Le cœur du problème réglé)
-// =============================================================
-
-function ouvrirMenuPartage() {
-    document.getElementById('photoModal').style.display = 'flex';
-}
-
-function fermerModal() {
-    document.getElementById('photoModal').style.display = 'none';
-}
-
-function lancerGenerationSansPhoto() {
-    document.getElementById('photoContainer').style.display = 'none'; 
-    fermerModal();
-    partagerStats(); 
-}
-
-function declencherAjoutPhoto() {
-    // Simule un clic sur l'input caché
-    const input = document.getElementById('imageInputTrigger');
-    if(input) input.click();
-    else alert("Erreur: Input introuvable");
-}
-
-// Fonction appelée par le onchange="" du HTML
-function traiterLaPhoto(input) {
-    if (input.files && input.files[0]) {
-        // Petit message pour dire "Je travaille"
-        // (Optionnel, tu pourras l'enlever si ça t'agace)
-        // alert("Chargement de la photo..."); 
-
-        let reader = new FileReader();
-        
-        reader.onload = function(event) {
-            let img = document.getElementById('userPhoto');
-            
-            if(img) {
-                // Étape critique : On définit ce qu'il se passe QUAND l'image est prête
-                img.onload = function() {
-                    console.log("Image chargée dans le DOM");
-                    document.getElementById('photoContainer').style.display = 'block';
-                    fermerModal();
-                    
-                    // On laisse une petite seconde au navigateur pour reprendre son souffle
-                    // avant de lancer le gros calcul html2canvas
-                    setTimeout(function() {
-                        partagerStats();
-                    }, 300);
-                };
-
-                // On injecte la source (ce qui déclenche le chargement ci-dessus)
-                img.src = event.target.result;
-            }
-        }
-        
-        // On lit le fichier
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
 function partagerStats() {
     // -----------------------------------------------------------
-    // ÉTAPE 1 : PRÉPARATION DU TEXTE (Inchangé)
+    // ÉTAPE 1 : TEXTES & NETTOYAGE (Inchangé)
     // -----------------------------------------------------------
-    
-    // Remplissage des chiffres
     const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
     document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
     document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
     document.getElementById('shareTotalGeneral').innerText = totalGen;
 
-    // Nettoyage Whitelist (Anti-Emoji)
     let rawFact = document.getElementById('funFact').innerText;
     let cleanFact = rawFact
         .replace("C'est environ ", "")
@@ -267,7 +20,6 @@ function partagerStats() {
 
     if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
 
-    // Auto-Resize
     let taillePolice = 38;
     const nbCaractères = texteFinal.length;
     if (nbCaractères > 60) taillePolice = 22;
@@ -282,55 +34,41 @@ function partagerStats() {
     hollowText.innerText = texteFinal;
 
     // -----------------------------------------------------------
-    // ÉTAPE 2 : CLONAGE UNIQUE (La Correction)
+    // ÉTAPE 2 : CLONAGE & PRÉPARATION
     // -----------------------------------------------------------
-
-    // NETTOYAGE AGRESSIF : On supprime TOUS les anciens clones qui traîneraient
-    // On utilise une classe 'temp-clone-trash' pour les repérer
     document.querySelectorAll('.temp-clone-trash').forEach(el => el.remove());
 
     const original = document.getElementById('shareCardContainer');
     const clone = original.cloneNode(true);
-    
-    // GÉNÉRATION D'UN ID UNIQUE (Basé sur l'heure exacte)
-    // Comme ça, impossible d'avoir un conflit de nom
     const uniqueID = "clone_" + Date.now(); 
     clone.id = uniqueID;
-    
-    // On ajoute une classe spéciale pour pouvoir le supprimer facilement après
     clone.classList.add('temp-clone-trash');
 
-    // Style pour le cacher derrière mais le garder "existant"
     clone.style.width = "400px";
     clone.style.height = "400px";
     clone.style.position = "fixed";
     clone.style.top = "0";
     clone.style.left = "0";
-    clone.style.zIndex = "-9999"; // Derrière tout
+    clone.style.zIndex = "-9999"; 
     clone.style.display = "block"; 
     
     document.body.appendChild(clone);
 
     // -----------------------------------------------------------
-    // ÉTAPE 3 : GÉNÉRATION
+    // ÉTAPE 3 : GÉNÉRATION AVEC PLAN B (FALLBACK)
     // -----------------------------------------------------------
 
     setTimeout(() => {
-        // On cible bien NOTRE clone unique
         const elementToCapture = document.getElementById(uniqueID);
-
-        if (!elementToCapture) {
-            alert("Erreur : Le clone a disparu avant la photo.");
-            return;
-        }
+        if (!elementToCapture) return;
 
         html2canvas(elementToCapture, {
             backgroundColor: "#bc13fe",
-            scale: 1, // On garde 1 pour la stabilité sur iPhone
+            scale: 1, 
             useCORS: true,
             logging: false,
         }).then(canvas => {
-            // Une fois fini, on supprime ce clone précis
+            // Ménage
             elementToCapture.remove();
 
             canvas.toBlob(blob => {
@@ -338,84 +76,59 @@ function partagerStats() {
                 
                 const file = new File([blob], 'my-wrapped.png', { type: 'image/png' });
                 
+                // --- TENTATIVE DE PARTAGE NATIF ---
                 if (navigator.share && navigator.canShare({ files: [file] })) {
                     navigator.share({
                         files: [file],
                         title: 'My Wrapped',
-                    }).catch(console.error);
+                    }).catch(err => {
+                        console.warn("Partage échoué ou annulé, passage au Plan B", err);
+                        afficherImageSecours(canvas.toDataURL());
+                    });
                 } else {
-                    const link = document.createElement('a');
-                    link.href = canvas.toDataURL();
-                    link.download = 'wrapped.png';
-                    link.click();
+                    // Si le navigateur ne supporte pas le partage
+                    afficherImageSecours(canvas.toDataURL());
                 }
             });
         }).catch(err => {
             console.error(err);
-            // En cas d'erreur, on nettoie quand même
-            if(document.getElementById(uniqueID)) {
-                document.getElementById(uniqueID).remove();
-            }
+            alert("Erreur technique : " + err);
+            if(document.getElementById(uniqueID)) document.getElementById(uniqueID).remove();
         });
     }, 100);
 }
 
+// --- NOUVELLE FONCTION : LE PLAN B ---
+// Cette fonction affiche l'image en gros sur l'écran si le partage échoue
+function afficherImageSecours(dataUrl) {
+    // Création d'un fond noir
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.9)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.onclick = () => overlay.remove(); // Cliquer pour fermer
 
-// =============================================================
-// 5. SAUVEGARDE ET RESTAURATION
-// =============================================================
+    // L'image générée
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.maxWidth = '90%';
+    img.style.borderRadius = '15px';
+    img.style.boxShadow = '0 0 20px rgba(255,255,255,0.2)';
 
-function copierDonnees() {
-    // CORRECTION : On force la conversion du Storage en véritable Objet JavaScript
-    // L'opérateur { ...localStorage } permet de cloner proprement les données
-    const donneesBrutes = { ...localStorage };
-    const sauvegarde = JSON.stringify(donneesBrutes);
-    
-    // Vérification de sécurité
-    if (sauvegarde === "{}" || Object.keys(donneesBrutes).length === 0) {
-        alert("⚠️ Il n'y a aucune donnée à sauvegarder (Historique vide).");
-        return;
-    }
+    // Le message d'instruction
+    const msg = document.createElement('p');
+    msg.innerText = "Maintiens l'image appuyée pour l'enregistrer 📸";
+    msg.style.color = 'white';
+    msg.style.marginTop = '20px';
+    msg.style.fontFamily = 'sans-serif';
+    msg.style.fontWeight = 'bold';
 
-    navigator.clipboard.writeText(sauvegarde)
-        .then(() => alert("✅ Données copiées dans le presse-papier !\n\nTu peux maintenant aller sur l'autre version de l'app et cliquer sur 'Restaurer'."))
-        .catch(err => {
-            // Fallback si le presse-papier échoue (rare mais possible)
-            console.error(err);
-            alert("❌ Le copier-coller automatique a échoué.\nNous allons essayer une autre méthode.");
-            prompt("Copie ce texte manuellement :", sauvegarde);
-        });
+    overlay.appendChild(img);
+    overlay.appendChild(msg);
+    document.body.appendChild(overlay);
 }
-
-async function collerDonnees() {
-    try {
-        const text = await navigator.clipboard.readText();
-        if (!text || !text.startsWith("{")) {
-            alert("⚠️ Presse-papier vide ou invalide. Copie d'abord tes données.");
-            return;
-        }
-
-        const data = JSON.parse(text);
-        
-        // 1. On met à jour la base de données du navigateur
-        localStorage.clear();
-        for (const [key, val] of Object.entries(data)) {
-            localStorage.setItem(key, val);
-        }
-
-        // 2. LA CORRECTION : On met à jour l'affichage SANS recharger la page
-        // On recharge la variable globale 'activites' avec les nouvelles données
-        activites = JSON.parse(localStorage.getItem('sport_data')) || [];
-        
-        // On lance la fonction principale qui recalcule tout
-        sauvegarderEtAfficher();
-
-        alert("✅ Données restaurées et affichage mis à jour !");
-        
-    } catch (e) {
-        alert("❌ Erreur : " + e.message);
-    }
-}
-
-// Lancement au chargement de la page
-sauvegarderEtAfficher();
