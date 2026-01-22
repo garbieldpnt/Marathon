@@ -200,75 +200,61 @@ function lancerGenerationSansPhoto() {
 }
 
 function declencherAjoutPhoto() {
-    // Simule un clic sur l'input caché
     const input = document.getElementById('imageInputTrigger');
-    if(input) input.click();
-    else alert("Erreur: Input introuvable");
+    if (input) {
+        // CORRECTION IMPORTANTE : On remet l'input à zéro.
+        // Cela permet de sélectionner la même photo plusieurs fois sans bloquer.
+        input.value = ""; 
+        input.click();
+    } else {
+        alert("Erreur interne : Input photo introuvable.");
+    }
 }
 
 // Fonction appelée par le onchange="" du HTML
 function traiterLaPhoto(input) {
     if (input.files && input.files[0]) {
-        // Petit message pour dire "Je travaille"
-        // (Optionnel, tu pourras l'enlever si ça t'agace)
-        // alert("Chargement de la photo..."); 
+        // 1. On ferme la modale tout de suite pour ne pas rester bloqué
+        fermerModal();
 
+        // 2. On lit le fichier
         let reader = new FileReader();
-        
         reader.onload = function(event) {
             let img = document.getElementById('userPhoto');
-            
-            if(img) {
-                // Étape critique : On définit ce qu'il se passe QUAND l'image est prête
-                img.onload = function() {
-                    console.log("Image chargée dans le DOM");
-                    document.getElementById('photoContainer').style.display = 'block';
-                    fermerModal();
-                    
-                    // On laisse une petite seconde au navigateur pour reprendre son souffle
-                    // avant de lancer le gros calcul html2canvas
-                    setTimeout(function() {
-                        partagerStats();
-                    }, 300);
-                };
-
-                // On injecte la source (ce qui déclenche le chargement ci-dessus)
+            if (img) {
                 img.src = event.target.result;
+                // On affiche le conteneur photo
+                document.getElementById('photoContainer').style.display = 'block';
+                
+                // On lance la génération après un court instant
+                setTimeout(() => {
+                    partagerStats();
+                }, 500);
             }
-        }
-        
-        // On lit le fichier
+        };
         reader.readAsDataURL(input.files[0]);
     }
 }
 
 function partagerStats() {
-    // -----------------------------------------------------------
-    // ÉTAPE 1 : TEXTES & NETTOYAGE (Inchangé)
-    // -----------------------------------------------------------
+    // 1. TEXTES & NETTOYAGE
     const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
     document.getElementById('shareTotalK').innerText = document.getElementById('totalK').innerText;
     document.getElementById('shareTotal3').innerText = document.getElementById('total3').innerText;
     document.getElementById('shareTotalGeneral').innerText = totalGen;
 
     let rawFact = document.getElementById('funFact').innerText;
-    let cleanFact = rawFact
-        .replace("C'est environ ", "")
-        .replace("C'est exactement la taille de ", "PILE : ")
-        .replace("En attente de data...", "");
-
-    let texteFinal = cleanFact
-        .replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '')
-        .trim()
-        .toUpperCase();
-
+    let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ").replace("En attente de data...", "");
+    
+    // Nettoyage strict (Anti-Emoji)
+    let texteFinal = cleanFact.replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '').trim().toUpperCase();
     if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
 
+    // Taille police
     let taillePolice = 38;
-    const nbCaractères = texteFinal.length;
-    if (nbCaractères > 60) taillePolice = 22;
-    else if (nbCaractères > 40) taillePolice = 26;
-    else if (nbCaractères > 25) taillePolice = 30;
+    if (texteFinal.length > 60) taillePolice = 22;
+    else if (texteFinal.length > 40) taillePolice = 26;
+    else if (texteFinal.length > 25) taillePolice = 30;
 
     const solidText = document.getElementById('shareFunFactSolid');
     const hollowText = document.getElementById('shareFunFactHollow');
@@ -277,104 +263,60 @@ function partagerStats() {
     solidText.innerText = texteFinal;
     hollowText.innerText = texteFinal;
 
-    // -----------------------------------------------------------
-    // ÉTAPE 2 : CLONAGE & PRÉPARATION
-    // -----------------------------------------------------------
-    document.querySelectorAll('.temp-clone-trash').forEach(el => el.remove());
+    // 2. CLONAGE & NETTOYAGE MÉMOIRE
+    // On supprime TOUT ce qui ressemble à un clone précédent
+    document.querySelectorAll('[id^="clone_"]').forEach(el => el.remove());
 
     const original = document.getElementById('shareCardContainer');
     const clone = original.cloneNode(true);
-    const uniqueID = "clone_" + Date.now(); 
+    const uniqueID = "clone_" + Date.now();
     clone.id = uniqueID;
-    clone.classList.add('temp-clone-trash');
-
-    clone.style.width = "400px";
-    clone.style.height = "400px";
-    clone.style.position = "fixed";
-    clone.style.top = "0";
-    clone.style.left = "0";
-    clone.style.zIndex = "-9999"; 
-    clone.style.display = "block"; 
     
+    // Style du clone
+    Object.assign(clone.style, {
+        position: 'fixed', top: '0', left: '0',
+        width: '400px', height: '400px',
+        zIndex: '-9999', display: 'block'
+    });
+
     document.body.appendChild(clone);
 
-    // -----------------------------------------------------------
-    // ÉTAPE 3 : GÉNÉRATION AVEC PLAN B (FALLBACK)
-    // -----------------------------------------------------------
-
+    // 3. GÉNÉRATION
     setTimeout(() => {
-        const elementToCapture = document.getElementById(uniqueID);
-        if (!elementToCapture) return;
+        const target = document.getElementById(uniqueID);
+        if(!target) return;
 
-        html2canvas(elementToCapture, {
+        html2canvas(target, {
             backgroundColor: "#bc13fe",
-            scale: 1, 
+            scale: 1, // Scale 1 pour éviter le crash mémoire sur iPhone
             useCORS: true,
-            logging: false,
+            logging: false
         }).then(canvas => {
-            // Ménage
-            elementToCapture.remove();
+            // Suppression immédiate du clone du DOM pour libérer la mémoire
+            target.remove();
 
             canvas.toBlob(blob => {
                 if (!blob) return;
-                
-                const file = new File([blob], 'my-wrapped.png', { type: 'image/png' });
-                
-                // --- TENTATIVE DE PARTAGE NATIF ---
+                const file = new File([blob], 'wrapped.png', { type: 'image/png' });
+
+                // Partage simple
                 if (navigator.share && navigator.canShare({ files: [file] })) {
-                    navigator.share({
-                        files: [file],
-                        title: 'My Wrapped',
-                    }).catch(err => {
-                        console.warn("Partage échoué ou annulé, passage au Plan B", err);
-                        afficherImageSecours(canvas.toDataURL());
-                    });
+                    navigator.share({ files: [file], title: 'My Wrapped' })
+                        .catch(e => console.log("Partage annulé"));
                 } else {
-                    // Si le navigateur ne supporte pas le partage
-                    afficherImageSecours(canvas.toDataURL());
+                    // Fallback simple : Téléchargement
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL();
+                    link.download = 'wrapped.png';
+                    link.click();
                 }
             });
         }).catch(err => {
             console.error(err);
-            alert("Erreur technique : " + err);
             if(document.getElementById(uniqueID)) document.getElementById(uniqueID).remove();
+            alert("Erreur image. Réessaie une fois.");
         });
-    }, 100);
-}
-
-// --- NOUVELLE FONCTION : LE PLAN B ---
-// Cette fonction affiche l'image en gros sur l'écran si le partage échoue
-function afficherImageSecours(dataUrl) {
-    // Création d'un fond noir
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.inset = '0';
-    overlay.style.backgroundColor = 'rgba(0,0,0,0.9)';
-    overlay.style.zIndex = '10000';
-    overlay.style.display = 'flex';
-    overlay.style.flexDirection = 'column';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.onclick = () => overlay.remove(); // Cliquer pour fermer
-
-    // L'image générée
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.maxWidth = '90%';
-    img.style.borderRadius = '15px';
-    img.style.boxShadow = '0 0 20px rgba(255,255,255,0.2)';
-
-    // Le message d'instruction
-    const msg = document.createElement('p');
-    msg.innerText = "Maintiens l'image appuyée pour l'enregistrer 📸";
-    msg.style.color = 'white';
-    msg.style.marginTop = '20px';
-    msg.style.fontFamily = 'sans-serif';
-    msg.style.fontWeight = 'bold';
-
-    overlay.appendChild(img);
-    overlay.appendChild(msg);
-    document.body.appendChild(overlay);
+    }, 200);
 }
 
 
