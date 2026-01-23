@@ -15,42 +15,41 @@ const locationNameInput = document.getElementById('locationNameInput');
 // 2. NAVIGATION
 // =============================================================
 function changerVue(vue) {
-    const viewMarathon = document.getElementById('view-marathon');
-    const viewMap = document.getElementById('view-map');
-    const btnMarathon = document.getElementById('btn-nav-marathon');
-    const btnMap = document.getElementById('btn-nav-map');
+    // Les Vues
+    const views = {
+        marathon: document.getElementById('view-marathon'),
+        map: document.getElementById('view-map'),
+        trophies: document.getElementById('view-trophies')
+    };
+    
+    // Les Boutons
+    const btns = {
+        marathon: document.getElementById('btn-nav-marathon'),
+        map: document.getElementById('btn-nav-map'),
+        trophies: document.getElementById('btn-nav-trophies')
+    };
 
-    // Les classes pour l'état ACTIF (Fond sombre, texte blanc, shadow)
-    const activeClasses = ['bg-slate-800', 'text-white', 'shadow-lg', 'scale-105'];
-    // Les classes pour l'état INACTIF (Fond transparent, texte gris)
-    const inactiveClasses = ['bg-transparent', 'text-slate-400', 'hover:bg-slate-100'];
+    // Styles
+    const activeClass = ['bg-slate-800', 'text-white', 'shadow-lg', 'scale-105'];
+    const inactiveClass = ['bg-transparent', 'text-slate-400', 'hover:bg-slate-100'];
 
-    if (vue === 'marathon') {
-        viewMarathon.classList.remove('hidden');
-        viewMap.classList.add('hidden');
-        
-        // On active Marathon
-        btnMarathon.classList.add(...activeClasses);
-        btnMarathon.classList.remove(...inactiveClasses);
-        
-        // On désactive Map
-        btnMap.classList.add(...inactiveClasses);
-        btnMap.classList.remove(...activeClasses);
+    // 1. On cache tout et on désactive tous les boutons
+    Object.values(views).forEach(el => el.classList.add('hidden'));
+    Object.values(btns).forEach(el => {
+        el.classList.remove(...activeClass);
+        el.classList.add(...inactiveClass);
+    });
 
-    } else {
-        viewMarathon.classList.add('hidden');
-        viewMap.classList.remove('hidden');
+    // 2. On affiche la vue demandée
+    views[vue].classList.remove('hidden');
 
-        // On active Map
-        btnMap.classList.add(...activeClasses);
-        btnMap.classList.remove(...inactiveClasses);
-        
-        // On désactive Marathon
-        btnMarathon.classList.add(...inactiveClasses);
-        btnMarathon.classList.remove(...activeClasses);
+    // 3. On active le bouton correspondant
+    btns[vue].classList.remove(...inactiveClass);
+    btns[vue].classList.add(...activeClass);
 
-        initMap();
-    }
+    // 4. Actions spécifiques
+    if (vue === 'map') initMap();
+    if (vue === 'trophies') chargerTrophees(); // On charge la liste quand on clique
 }
 
 // =============================================================
@@ -209,16 +208,39 @@ function sauvegarderEtAfficher() {
         { t: 1.93, n: "Nolan / un vigile" },
         { t: 2.50, n: "une colonne du Palais Longchamp 🏛️" },
         { t: 5.00, n: "la statue du David (Prado) 🗿" },
+        { t: 5.26, n: "la statue de la liberté 🗽" },        
+        // --- LE VENTRE MOU (5m - 20m) ---
+        { t: 5.26, n: "la tête de la Statue de la Liberté (menton-crâne) 🗽" },
+        { t: 5.50, n: "une limousine de mariage 🥂" },
+        { t: 6.17, n: "Lolong, le plus grand crocodile capturé 🐊" },
+        { t: 6.26, n: "le saut à la perche de Duplantis (WR) 🥖" },
         { t: 6.66, n: "Barbe Blanche (One Piece) 🏴‍☠️" },
-        { t: 11.2, n: "la statue de la 'Bonne Mère' ⛪" },
-        { t: 14.0, n: "un grand palmier du Vieux-Port 🌴" },
+        { t: 7.32, n: "la largeur exacte d'un but de foot ⚽" },
+        { t: 7.62, n: "le Camping-Car de Breaking Bad 🚐" },
+        { t: 8.95, n: "le record du monde de saut en longueur 👟" },
+        { t: 9.15, n: "la distance du mur sur un coup-franc 👮" },
+        { t: 10.97, n: "la largeur d'un court de tennis (double) 🎾" },
+        { t: 11.23, n: "un bus de la RTM (Standard) 🚌" },
+        { t: 12.19, n: "un conteneur maritime 40 pieds 🚢" },
+        { t: 13.76, n: "un T-Rex (le spécimen Scotty) 🦖" },
+        { t: 14.00, n: "un grand palmier du Vieux-Port 🌴" },
+        { t: 15.00, n: "un terrain de pétanque (longueur max) 🔵" },
+        { t: 16.50, n: "la surface de réparation (profondeur) 🥅" },
+        { t: 18.29, n: "une piste de Bowling (foul line -> quille) 🎳" },
+        { t: 18.44, n: "la distance Lanceur-Batteur au Baseball ⚾" },
+        { t: 19.05, n: "la distance entre les bases (Baseball) 🏃" },
+
+        // --- LES GÉANTS ---
         { t: 25.0, n: "le bus 83 qui longe la Corniche 🚌" },
-        { t: 45.0, n: "le Château d'If 🏰" },
+        { t: 30.0, n: "une Baleine Bleue 🐳" },
+        { t: 33.0, n: "le Christ Rédempteur (Rio) 🇧🇷" },
+        { t: 45.0, n: "le Château d'If (hauteur) 🏰" },
         { t: 60.0, n: "le toit de l'Orange Vélodrome 🏟️" },
         { t: 86.0, n: "la Grande Roue du Vieux-Port 🎡" },
         { t: 149, n: "le sommet de Notre-Dame de la Garde ⛪" },
         { t: 161, n: "la Tour CMA CGM 🏙️" },
         { t: 300, n: "la file du Berghain 🇩🇪" },
+        { t: 324, n: "la Tour Eiffel 🗼" },
         { t: 828, n: "le Burj Khalifa 🏗️" },
         { t: 1000, n: "1 km (Stop it Xays)" },
         { t: 42195, n: "UN MARATHON (C'est une blague ?)" },
@@ -443,3 +465,92 @@ function copierDonnees() { const d = { ...localStorage }; const s = JSON.stringi
 async function collerDonnees() { try { const t = await navigator.clipboard.readText(); const d = JSON.parse(t); localStorage.clear(); for(const[k,v]of Object.entries(d))localStorage.setItem(k,v); activites = JSON.parse(localStorage.getItem('sport_data'))||[]; sauvegarderEtAfficher(); alert("✅ Restauré !"); } catch(e){alert("Erreur: "+e.message);} }
 
 sauvegarderEtAfficher();
+
+// =============================================================
+// 8. SYSTÈME DE TROPHÉES (Vue dédiée)
+// =============================================================
+
+const TROPHY_LIST = [
+    { m: 0.02, icon: "🎚️", name: "Fader" },
+    { m: 0.05, icon: "👂", name: "Bouchon d'oreille" },
+    { m: 0.30, icon: "💿", name: "Vinyle Maxi" },
+    { m: 1.00, icon: "🔌", name: "Câble XLR" },
+    { m: 1.57, icon: "🌸", name: "Fleur" },
+    { m: 1.63, icon: "👸", name: "Sara" },
+    { m: 1.65, icon: "💀", name: "Anaïs" },
+    { m: 1.70, icon: "🐅", name: "Gabriel" },
+    { m: 1.88, icon: "🎸", name: "Jolan the tracer" },
+    { m: 1.90, icon: "🥸", name: "Adrien askip" },
+    { m: 2.50, icon: "🏛️", name: "Palais Longchamp" },
+    { m: 5.00, icon: "🗿", name: "Le David" },
+    { m: 5.26, icon: "🗽", name: "Tête Liberté" }, // NOUVEAU
+    { m: 6.26, icon: "🥖", name: "Saut Perche" }, // NOUVEAU
+    { m: 7.32, icon: "⚽", name: "But de Foot" }, // NOUVEAU
+    { m: 7.62, icon: "🚐", name: "Breaking Bad" }, // NOUVEAU
+    { m: 9.15, icon: "👮", name: "Mur Coup-franc" }, // NOUVEAU
+    { m: 11.2, icon: "⛪", name: "Bonne Mère" },
+    { m: 12.19, icon: "🚢", name: "Conteneur 40'" }, // NOUVEAU
+    { m: 13.76, icon: "🦖", name: "T-Rex" }, // NOUVEAU
+    { m: 15.00, icon: "🔵", name: "Pétanque" }, // INDISPENSABLE
+    { m: 18.29, icon: "🎳", name: "Bowling" }, // NOUVEAU
+    { m: 25.0, icon: "🚌", name: "Bus 83" },
+    { m: 45.0, icon: "🏰", name: "Château d'If" },
+    { m: 60.0, icon: "🏟️", name: "Vélodrome" },
+    { m: 86.0, icon: "🎡", name: "Grande Roue" },
+    { m: 149, icon: "⛪", name: "Sommet N-D Garde" },
+    { m: 161, icon: "🏙️", name: "Tour CMA CGM" },
+    { m: 300, icon: "🌑", name: "Berghain" },
+    { m: 828, icon: "🏗️", name: "Burj Khalifa" }
+];
+
+function chargerTrophees() {
+    const grid = document.getElementById('trophyGrid');
+    const progressLabel = document.getElementById('trophyProgress');
+    
+    // On recalcule le total à la volée pour être sûr d'être à jour
+    let totalK = 0, total3 = 0;
+    activites.forEach(a => {
+        if (a.type === 'K') totalK += a.dist || a.valeurMetres; // Sécurité double nommage
+        else total3 += a.dist || a.valeurMetres;
+    });
+    const totalM = totalK + total3; // total est déjà en mètres dans 'activites' normalement
+    
+    // Petite sécurité : si tes objets utilisent 'dist' en cm ou 'valeurMetres' en m
+    // Dans ton code actuel 'valeurMetres' est bien en mètres.
+    // Mais pour le totalGeneral affiché dans le DOM, on peut aussi le récupérer là :
+    // const totalM = parseFloat(document.getElementById('totalGeneral').innerText) || 0;
+
+    let unlockedCount = 0;
+    let html = "";
+
+    TROPHY_LIST.forEach(t => {
+        const isUnlocked = totalM >= t.m;
+        if (isUnlocked) unlockedCount++;
+
+        if (isUnlocked) {
+            // DÉBLOQUÉ
+            html += `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex flex-col items-center justify-center gap-2 relative overflow-hidden" style="animation: popIn 0.3s ease-out forwards;">
+                    <div class="absolute inset-0 bg-gradient-to-br from-yellow-50 to-white opacity-50"></div>
+                    <span class="text-4xl relative z-10 filter drop-shadow-sm">${t.icon}</span>
+                    <span class="text-xs font-bold text-slate-800 text-center relative z-10 leading-tight">${t.name}</span>
+                    <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full relative z-10 border border-amber-200">✅ ${t.m} m</span>
+                </div>
+            `;
+        } else {
+            // BLOQUÉ
+            const manque = (t.m - totalM).toFixed(2);
+            html += `
+                <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center gap-2 opacity-60 grayscale relative">
+                    <span class="absolute top-2 right-2 text-lg opacity-40">🔒</span>
+                    <span class="text-4xl opacity-20 filter blur-[1px]">${t.icon}</span>
+                    <span class="text-xs font-bold text-slate-400 text-center">???</span>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full">encore ${manque} m</span>
+                </div>
+            `;
+        }
+    });
+
+    grid.innerHTML = html;
+    progressLabel.innerText = `${unlockedCount} / ${TROPHY_LIST.length} DÉBLOQUÉS`;
+}
