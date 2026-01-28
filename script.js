@@ -4,7 +4,8 @@
 let activites = JSON.parse(localStorage.getItem('sport_data')) || [];
 let typeEnCours = "K"; 
 let idEnCours = null;
-let coordEnCours = null; 
+let coordEnCours = null;
+let dernierGPSConnu = null;
 
 // Éléments DOM
 const modal = document.getElementById('modal');
@@ -15,41 +16,67 @@ const locationNameInput = document.getElementById('locationNameInput');
 // 2. NAVIGATION
 // =============================================================
 function changerVue(vue) {
-    // Les Vues
     const views = {
         marathon: document.getElementById('view-marathon'),
         map: document.getElementById('view-map'),
         trophies: document.getElementById('view-trophies')
     };
     
-    // Les Boutons
     const btns = {
         marathon: document.getElementById('btn-nav-marathon'),
         map: document.getElementById('btn-nav-map'),
         trophies: document.getElementById('btn-nav-trophies')
     };
 
-    // Styles
-    const activeClass = ['bg-slate-800', 'text-white', 'shadow-lg', 'scale-105'];
-    const inactiveClass = ['bg-transparent', 'text-slate-400', 'hover:bg-slate-100'];
+    const cursor = document.getElementById('nav-cursor');
 
-    // 1. On cache tout et on désactive tous les boutons
+    // 1. GESTION DU SLIDE (Curseur)
+    if (vue === 'marathon') cursor.style.transform = 'translateX(0%)';
+    else if (vue === 'map') cursor.style.transform = 'translateX(100%)';
+    else if (vue === 'trophies') cursor.style.transform = 'translateX(200%)';
+
+    // 2. GESTION DES VUES (Afficher/Cacher)
     Object.values(views).forEach(el => el.classList.add('hidden'));
-    Object.values(btns).forEach(el => {
-        el.classList.remove(...activeClass);
-        el.classList.add(...inactiveClass);
-    });
-
-    // 2. On affiche la vue demandée
     views[vue].classList.remove('hidden');
 
-    // 3. On active le bouton correspondant
-    btns[vue].classList.remove(...inactiveClass);
-    btns[vue].classList.add(...activeClass);
+    // 3. GESTION DES BOUTONS (Couleur texte)
+    Object.keys(btns).forEach(key => {
+        const btn = btns[key];
+        if (key === vue) {
+            btn.classList.remove('text-slate-400', 'hover:text-slate-600');
+            btn.classList.add('text-white');
+        } else {
+            btn.classList.remove('text-white');
+            btn.classList.add('text-slate-400', 'hover:text-slate-600');
+        }
+    });
 
-    // 4. Actions spécifiques
-    if (vue === 'map') initMap();
-    if (vue === 'trophies') chargerTrophees(); // On charge la liste quand on clique
+    // =========================================================
+    // 4. GESTION INTELLIGENTE DU GPS (Le Correctif)
+    // =========================================================
+    
+    // Si on va sur la MAP
+    if (vue === 'map') {
+        initMap(); // Crée la carte si elle n'existe pas encore
+        
+        // On FORCE le redémarrage du GPS de la carte
+        if (mapInstance) {
+            mapInstance.locate({watch: true, enableHighAccuracy: true});
+            setTimeout(() => { mapInstance.invalidateSize(); }, 300);
+        }
+    } 
+    // Si on n'est PAS sur la map (Stats ou Trophées)
+    else {
+        // On COUPE le GPS de la carte pour libérer la ressource
+        if (mapInstance) {
+            mapInstance.stopLocate();
+        }
+        
+        // Si on va sur Trophées, on charge la liste
+        if (vue === 'trophies') {
+            chargerTrophees();
+        }
+    }
 }
 
 // =============================================================
@@ -77,21 +104,132 @@ function changerTypeSaisie(nouveauType) {
     }
 }
 
+// =============================================================
+// FONCTIONS UTILITAIRES POUR LE GPS & AUTOCOMPLETE
+// =============================================================
+
+// 1. Mathématiques (Calcul de distance)
+function getDistanceEnMetres(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// 2. Détection Intelligente
+function detecterLieuEtAutocomplet() {
+    const input = document.getElementById('locationNameInput');
+    const datalist = document.getElementById('lieux-connus');
+    const hint = document.getElementById('gpsHint');
+    
+    // Reset visuel
+    if(input) {
+        input.value = "";
+        input.classList.remove('border-green-500', 'bg-green-50');
+    }
+    if(hint) hint.classList.add('hidden');
+
+    // Construire la liste (inchangé)
+    const lieuxUniques = {};
+    activites.forEach(a => {
+        if (a.nom && a.lat && a.lng) lieuxUniques[a.nom] = { lat: a.lat, lng: a.lng };
+    });
+    if(datalist) datalist.innerHTML = Object.keys(lieuxUniques).map(nom => `<option value="${nom}">`).join('');
+
+    // --- LA LOGIQUE HYBRIDE ---
+
+    // Fonction interne pour traiter une position (qu'elle vienne de la mémoire ou du GPS)
+    const traiterPosition = (lat, lng) => {
+        // Mise à jour de la coordonnée pour la validation future
+        coordEnCours = { lat: lat, lng: lng };
+        
+        // Mise à jour de la mémoire au cas où
+        dernierGPSConnu = { lat: lat, lng: lng };
+
+        let meilleurMatch = null;
+        let distanceMin = 50; 
+
+        for (const [nom, coords] of Object.entries(lieuxUniques)) {
+            const distance = getDistanceEnMetres(lat, lng, coords.lat, coords.lng);
+            if (distance < distanceMin) {
+                distanceMin = distance;
+                meilleurMatch = nom;
+            }
+        }
+
+        if (meilleurMatch && input) {
+            input.value = meilleurMatch;
+            if(hint) hint.classList.remove('hidden');
+            input.classList.add('border-green-500', 'bg-green-50');
+        }
+    };
+
+    // STRATÉGIE :
+    // 1. Si on a une position en mémoire récente (la carte était ouverte il y a peu), on l'utilise direct.
+    if (dernierGPSConnu) {
+        console.log("🚀 Utilisation du GPS en cache (Map)");
+        traiterPosition(dernierGPSConnu.lat, dernierGPSConnu.lng);
+    } 
+    // 2. Sinon, on demande au navigateur (avec option 'maximumAge' pour récupérer un cache système si dispo)
+    else if (navigator.geolocation) {
+        console.log("📡 Demande GPS fraîche...");
+        navigator.geolocation.getCurrentPosition(pos => {
+            traiterPosition(pos.coords.latitude, pos.coords.longitude);
+        }, (err) => {
+            console.log("Erreur GPS :", err);
+        }, { 
+            enableHighAccuracy: true, 
+            timeout: 5000,
+            maximumAge: 60000 // Accepte une position vieille d'1 minute max
+        });
+    }
+}
+
+// =============================================================
+// FONCTION D'OUVERTURE DE POPUP (Corrigée)
+// =============================================================
+
 function ouvrirPopup(typeDefaut, coords = null, nomPredefini = "") {
     idEnCours = null; 
-    coordEnCours = coords; 
     
-    // On met à jour l'interface selon le type choisi
-    changerTypeSaisie(typeDefaut || 'K');
+    // On s'assure de récupérer les éléments frais du DOM
+    const inputNom = document.getElementById('locationNameInput');
+    const inputDist = document.getElementById('distanceInput');
+    const modalEl = document.getElementById('modal');
 
-    document.getElementById('modalTitle').innerText = coords 
-        ? (nomPredefini ? "Ajouter à " + nomPredefini : "Nouveau lieu") 
-        : "Ajouter une distance";
+    // Gestion du type et des étoiles
+    if(typeof changerTypeSaisie === "function") changerTypeSaisie(typeDefaut || 'K');
+    if(typeof changerNote === "function") changerNote(0); 
+
+    // Titre
+    const titreEl = document.getElementById('modalTitle');
+    if(titreEl) {
+        titreEl.innerText = coords 
+            ? (nomPredefini ? "Ajouter à " + nomPredefini : "Nouveau lieu") 
+            : "Ajouter une distance";
+    }
     
-    locationNameInput.value = nomPredefini;
+    // Logique Principale
+    if (coords) {
+        // Cas 1 : Clic sur la carte (Manuel)
+        coordEnCours = coords;
+        if(inputNom) inputNom.value = nomPredefini;
+        // On cache l'indice GPS si on force un lieu
+        const hint = document.getElementById('gpsHint');
+        if(hint) hint.classList.add('hidden');
+    } else {
+        // Cas 2 : Bouton "+" (Automatique)
+        // On lance la détection
+        detecterLieuEtAutocomplet();
+    }
     
-    modal.classList.remove('hidden');
-    distanceInput.focus();
+    // Affichage
+    if(modalEl) modalEl.classList.remove('hidden');
+    if(inputDist) inputDist.focus();
 }
 
 function modifierLigne(id) {
@@ -118,37 +256,89 @@ function fermerPopup() {
 }
 
 function validerSaisie() {
-    const cm = parseFloat(distanceInput.value);
-    const nomLieu = locationNameInput.value.trim();
-    
+    console.log("🟢 Clic sur Valider..."); // Pour vérifier que le bouton marche
+
+    // 1. On récupère les éléments HTML proprement
+    const inputDist = document.getElementById('distanceInput');
+    const inputNom = document.getElementById('locationNameInput');
+
+    // Sécurité : si le HTML est cassé
+    if (!inputDist || !inputNom) {
+        alert("Erreur : Impossible de trouver les champs de saisie dans le HTML.");
+        return;
+    }
+
+    // 2. Récupération des valeurs
+    const valTexte = inputDist.value;
+    const cm = parseFloat(valTexte);
+    const nomLieu = inputNom.value.trim();
+
+    console.log("Valeur saisie :", cm, "Nom :", nomLieu);
+
+    // 3. Vérification de la validité (Doit être un nombre positif)
     if (!isNaN(cm) && cm >= 0) {
         const metres = cm / 100;
         
         if (idEnCours !== null) {
-            // Modification
+            // --- MODE MODIFICATION ---
             const index = activites.findIndex(a => a.id === idEnCours);
-            if (cm === 0) activites.splice(index, 1);
-            else {
-                activites[index].valeurMetres = metres;
-                activites[index].type = typeEnCours; // On peut changer le type en modifiant
-                if(nomLieu) activites[index].nom = nomLieu;
+            if (index !== -1) {
+                if (cm === 0) {
+                    activites.splice(index, 1);
+                } else {
+                    activites[index].valeurMetres = metres;
+                    activites[index].type = typeEnCours;
+                    // On garde la note si elle existe, sinon on met celle en cours
+                    activites[index].note = (typeof noteEnCours !== 'undefined') ? noteEnCours : 0;
+                    if(nomLieu) activites[index].nom = nomLieu;
+                }
             }
         } else if (cm > 0) {
-            // Création
+            // --- MODE CRÉATION ---
+            
+            // Par défaut : coordonnées GPS actuelles (ou nulles)
+            let finalLat = coordEnCours ? coordEnCours.lat : null;
+            let finalLng = coordEnCours ? coordEnCours.lng : null;
+
+            // REGROUPEMENT : On vérifie si ce nom existe déjà
+            if (nomLieu) {
+                // On cherche un lieu avec le même nom (insensible à la casse) et qui a des coordonnées
+                const lieuExistant = activites.find(a => 
+                    a.nom && 
+                    a.nom.toLowerCase() === nomLieu.toLowerCase() && 
+                    a.lat && a.lng
+                );
+                
+                if (lieuExistant) {
+                    // On s'aligne sur l'existant
+                    finalLat = lieuExistant.lat;
+                    finalLng = lieuExistant.lng;
+                    console.log("📍 Regroupement avec : " + nomLieu);
+                }
+            }
+
             activites.unshift({
                 id: Date.now(),
                 date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                type: typeEnCours, // Utilise le type sélectionné dans la modale
+                type: typeEnCours, // Variable globale définie dans script.js
                 valeurMetres: metres,
                 nom: nomLieu,
-                lat: coordEnCours ? coordEnCours.lat : null,
-                lng: coordEnCours ? coordEnCours.lng : null
+                note: (typeof noteEnCours !== 'undefined') ? noteEnCours : 0,
+                lat: finalLat,
+                lng: finalLng
             });
         }
         
+        // 4. Sauvegarde et fermeture
         sauvegarderEtAfficher();
         fermerPopup();
-        if(mapInstance) chargerMarqueurs();
+        
+        // Rafraîchir la carte si elle est chargée
+        if (typeof mapInstance !== 'undefined' && mapInstance) {
+            chargerMarqueurs();
+        }
+    } else {
+        alert("Veuillez entrer une distance valide (chiffre).");
     }
 }
 
@@ -292,20 +482,29 @@ function initMap() {
         attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20
     }).addTo(mapInstance);
 
-    // Clic sur la carte (zone vide) -> Nouveau point
     mapInstance.on('click', function(e) {
-        ouvrirPopup('K', e.latlng); // Ouvre avec Licorne par défaut, mais modifiable
+        ouvrirPopup('K', e.latlng);
     });
 
+    // On lance le suivi
     mapInstance.locate({watch: true, enableHighAccuracy: true});
+    
     mapInstance.on('locationfound', function(e) {
+        // 1. ON SAUVEGARDE LA POSITION DANS LA MÉMOIRE GLOBALE
+        dernierGPSConnu = { lat: e.latlng.lat, lng: e.latlng.lng };
+
         if (!userMarker) {
             const iconUser = L.divIcon({ className: 'user-location-dot', html: '<div class="dot"></div><div class="pulse"></div>', iconSize: [20, 20] });
             userMarker = L.marker(e.latlng, {icon: iconUser}).addTo(mapInstance);
-            mapInstance.flyTo(e.latlng, 13);
+            mapInstance.flyTo(e.latlng, 16); 
         } else {
             userMarker.setLatLng(e.latlng);
         }
+    });
+    
+    // Ajout : Gestion d'erreur GPS sur la carte
+    mapInstance.on('locationerror', function(e) {
+        console.log("Erreur GPS Map:", e.message);
     });
 
     chargerMarqueurs();
@@ -357,7 +556,7 @@ function chargerMarqueurs() {
 
     // 3. AFFICHAGE DES MARQUEURS REGROUPÉS
     Object.values(lieux).forEach(lieu => {
-        const emoji = lieu.typeDominant === 'K' ? '🦄' : '3️⃣';
+        const emoji = '👃';
         
         // Icône personnalisée
         const customIcon = L.divIcon({
@@ -478,7 +677,9 @@ const TROPHY_LIST = [
     { m: 1.57, icon: "🌸", name: "Fleur" },
     { m: 1.63, icon: "👸", name: "Sara" },
     { m: 1.65, icon: "💀", name: "Anaïs" },
+    { m: 1.65, icon: "🦶", name: "Kim" },
     { m: 1.70, icon: "🐅", name: "Gabriel" },
+    { m: 1.70, icon: "🤐", name: "Raph" },
     { m: 1.88, icon: "🎸", name: "Jolan the tracer" },
     { m: 1.90, icon: "🥸", name: "Adrien askip" },
     { m: 2.50, icon: "🏛️", name: "Palais Longchamp" },
@@ -554,3 +755,4 @@ function chargerTrophees() {
     grid.innerHTML = html;
     progressLabel.innerText = `${unlockedCount} / ${TROPHY_LIST.length} DÉBLOQUÉS`;
 }
+
