@@ -1,3 +1,11 @@
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Empêche tout scroll global bizarre */
+    position: fixed; /* Verrouille l'app sur iOS */
+    inset: 0;
+}
+
 /* --- CONFIGURATION MOBILE --- */
 * {
     box-sizing: border-box;
