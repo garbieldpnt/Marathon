@@ -282,31 +282,18 @@ button:active {
 }
 
 /* Fond quadrillé : PARFAITEMENT CARRÉ */
+/* Fond quadrillé : UNIQUEMENT DES CARRÉS DE 1CM */
 .grid-background {
     background-color: #ffffff;
     
-    /* L'ordre est crucial ici. 
-       Nous avons 4 calques de lignes.
-    */
+    /* Juste deux calques : Lignes Verticales et Horizontales */
     background-image: 
-        /* 1. Ligne Verticale Foncée (CM) */
         linear-gradient(to right, #94a3b8 1px, transparent 1px),
-        /* 2. Ligne Horizontale Foncée (CM) */
-        linear-gradient(to bottom, #94a3b8 1px, transparent 1px),
-        
-        /* 3. Ligne Verticale Claire (MM) */
-        linear-gradient(to right, #e2e8f0 1px, transparent 1px),
-        /* 4. Ligne Horizontale Claire (MM) */
-        linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+        linear-gradient(to bottom, #94a3b8 1px, transparent 1px);
     
-    /* On répète la taille pour chaque calque ci-dessus 
-       pour forcer le format CARRÉ 
-    */
-    background-size: 
-        1cm 1cm,      /* Pour la ligne Verticale CM */
-        1cm 1cm,      /* Pour la ligne Horizontale CM */
-        0.2cm 0.2cm,  /* Pour la ligne Verticale MM */
-        0.2cm 0.2cm;  /* Pour la ligne Horizontale MM */
-        
+    /* Une seule taille pour tout le monde : 1cm carré */
+    background-size: 1cm 1cm;
+    
+    /* On décale un peu pour ne pas coller au bord */
     background-position: 10px 10px;
 }
