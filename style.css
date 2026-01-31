@@ -281,19 +281,16 @@ button:active {
     transform: translateY(-5px) scale(1.1);
 }
 
-/* Fond quadrillé : PARFAITEMENT CARRÉ */
-/* Fond quadrillé : UNIQUEMENT DES CARRÉS DE 1CM */
 .grid-background {
     background-color: #ffffff;
     
-    /* Juste deux calques : Lignes Verticales et Horizontales */
     background-image: 
         linear-gradient(to right, #94a3b8 1px, transparent 1px),
         linear-gradient(to bottom, #94a3b8 1px, transparent 1px);
     
-    /* Une seule taille pour tout le monde : 1cm carré */
-    background-size: 1cm 1cm;
+    /* MODIFICATION ICI : Au lieu de 1cm, on met 1.67cm */
+    /* Ajuste ce chiffre (1.6, 1.7, 1.65...) jusqu'à ce que ta règle physique matche parfaitement */
+    background-size: 1.62cm 1.62cm;
     
-    /* On décale un peu pour ne pas coller au bord */
     background-position: 10px 10px;
 }
