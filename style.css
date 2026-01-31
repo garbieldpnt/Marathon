@@ -272,3 +272,41 @@ button:active {
 .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Mode Discret : Punaise de bureau */
+.pin-icon div {
+    transition: transform 0.2s ease;
+}
+.pin-icon:hover div {
+    transform: translateY(-5px) scale(1.1);
+}
+
+/* Fond quadrillé : PARFAITEMENT CARRÉ */
+.grid-background {
+    background-color: #ffffff;
+    
+    /* L'ordre est crucial ici. 
+       Nous avons 4 calques de lignes.
+    */
+    background-image: 
+        /* 1. Ligne Verticale Foncée (CM) */
+        linear-gradient(to right, #94a3b8 1px, transparent 1px),
+        /* 2. Ligne Horizontale Foncée (CM) */
+        linear-gradient(to bottom, #94a3b8 1px, transparent 1px),
+        
+        /* 3. Ligne Verticale Claire (MM) */
+        linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+        /* 4. Ligne Horizontale Claire (MM) */
+        linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+    
+    /* On répète la taille pour chaque calque ci-dessus 
+       pour forcer le format CARRÉ 
+    */
+    background-size: 
+        1cm 1cm,      /* Pour la ligne Verticale CM */
+        1cm 1cm,      /* Pour la ligne Horizontale CM */
+        0.2cm 0.2cm,  /* Pour la ligne Verticale MM */
+        0.2cm 0.2cm;  /* Pour la ligne Horizontale MM */
+        
+    background-position: 10px 10px;
+}
