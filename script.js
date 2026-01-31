@@ -901,12 +901,22 @@ function initRulerCanvas() {
         const dy = currentY - rulerStart.y;
         const distPixels = Math.sqrt(dx*dx + dy*dy);
 
-        // 2. Conversion en CM (Arrondi au dessus)
+        // 2. Conversion en CM
         const rawCM = distPixels / pixelsPerCM;
-        currentDistCM = Math.ceil(rawCM); // ARRONDIT À L'ENTIER SUPÉRIEUR (1.1 -> 2)
+        
+        // --- NOUVEAU CALCUL D'ARRONDI ---
+        const partieEntiere = Math.floor(rawCM);       // ex: 5.8 -> 5
+        const partieDecimale = rawCM - partieEntiere;  // ex: 5.8 -> 0.8
 
-        // Affichage (On montre aussi la décimale en petit pour info, ou juste l'entier ?)
-        // Ici je mets juste l'entier comme demandé
+        // Si la décimale dépasse 0.7, on passe au cm supérieur
+        if (partieDecimale > 0.7) {
+            currentDistCM = partieEntiere + 1;
+        } else {
+            currentDistCM = partieEntiere; // Sinon on reste en dessous
+        }
+        // --------------------------------
+
+        // Affichage
         displayVal.innerHTML = `${currentDistCM} <span class="text-sm">cm</span>`;
 
         // 3. Dessin
@@ -928,10 +938,8 @@ function initRulerCanvas() {
         ctx.fillStyle = "#9333ea";
         ctx.fill();
         
-        // Bulle de valeur flottante à côté du doigt (Optionnel, sympa pour l'UX)
-        ctx.font = "bold 16px sans-serif";
-        ctx.fillStyle = "#9333ea";
-        ctx.fillText(`${rawCM.toFixed(1)}`, currentX + 15, currentY - 15);
+        // (Optionnel) Affiche la valeur précise flottante à côté du doigt pour débugger si besoin
+        // ctx.fillText(`${rawCM.toFixed(2)}`, currentX + 10, currentY - 10);
     };
 
     const end = () => {
