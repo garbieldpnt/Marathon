@@ -1,8 +1,7 @@
 // =============================================================
 // CONFIGURATION THEME (DISCRET)
 // =============================================================
-let modeDiscretActif = false;
-
+let modeDiscretActif = localStorage.getItem('mode_discret_actif') === 'true';
 const THEMES = {
     PARTY: {
         iconeK: "🦄",
@@ -13,32 +12,67 @@ const THEMES = {
         btn3: "+ 3️⃣"
     },
     OFFICE: { 
-        iconeK: "🎀", // Ruban / Soie
-        icone3: "🧵", // Fil / Lin
-        iconeMap: "✂️", // Ciseaux
+        iconeK: "🎀", 
+        icone3: "🧵", 
+        iconeMap: "✂️", 
         titre: "Sourcing Textile",
         btnK: "+ Ruban",
         btn3: "+ Tissu"
     }
 };
 
-// Fonction pour récupérer l'icône actuelle partout dans le code
 function getTheme() {
     return modeDiscretActif ? THEMES.OFFICE : THEMES.PARTY;
 }
 
 // =============================================================
-// 1. CONFIGURATION & DONNÉES
+// 0. LISTE DES TROPHÉES (DÉPLACÉ ICI POUR ÊTRE ACCESSIBLE PARTOUT)
+// =============================================================
+const TROPHY_LIST = [
+    { m: 0.02, icon: "🎚️", name: "Fader" },
+    { m: 0.05, icon: "👂", name: "Bouchon d'oreille" },
+    { m: 0.30, icon: "💿", name: "Vinyle Maxi" },
+    { m: 1.00, icon: "🔌", name: "Câble XLR" },
+    { m: 1.57, icon: "🌸", name: "Fleur" },
+    { m: 1.63, icon: "👸", name: "Sara" },
+    { m: 1.65, icon: "💀", name: "Anaïs" },
+    { m: 1.65, icon: "🦶", name: "Kim" },
+    { m: 1.70, icon: "🐅", name: "Gabriel" },
+    { m: 1.70, icon: "🤐", name: "Raph" },
+    { m: 1.88, icon: "🎸", name: "Jolan the tracer" },
+    { m: 1.90, icon: "🥸", name: "Adrien askip" },
+    { m: 2.50, icon: "🏛️", name: "Palais Longchamp" },
+    { m: 5.00, icon: "🗿", name: "Le David" },
+    { m: 5.26, icon: "🗽", name: "Tête Liberté" },
+    { m: 6.26, icon: "🥖", name: "Saut Perche" },
+    { m: 7.32, icon: "⚽", name: "But de Foot" },
+    { m: 7.62, icon: "🚐", name: "Breaking Bad" },
+    { m: 9.15, icon: "👮", name: "Mur Coup-franc" },
+    { m: 11.2, icon: "⛪", name: "Bonne Mère" },
+    { m: 12.19, icon: "🚢", name: "Conteneur 40'" },
+    { m: 13.76, icon: "🦖", name: "T-Rex" },
+    { m: 15.00, icon: "🔵", name: "Pétanque" },
+    { m: 18.29, icon: "🎳", name: "Bowling" },
+    { m: 25.0, icon: "🚌", name: "Bus 83" },
+    { m: 45.0, icon: "🏰", name: "Château d'If" },
+    { m: 60.0, icon: "🏟️", name: "Vélodrome" },
+    { m: 86.0, icon: "🎡", name: "Grande Roue" },
+    { m: 149, icon: "⛪", name: "Sommet N-D Garde" },
+    { m: 161, icon: "🏙️", name: "Tour CMA CGM" },
+    { m: 300, icon: "🌑", name: "Berghain" },
+    { m: 828, icon: "🏗️", name: "Burj Khalifa" }
+];
+
+// =============================================================
+// 1. DONNÉES & DOM
 // =============================================================
 let activites = JSON.parse(localStorage.getItem('sport_data')) || [];
 let typeEnCours = "K"; 
 let idEnCours = null;
 let coordEnCours = null; 
 
-// Éléments DOM
 const modal = document.getElementById('modal');
-const distanceInput = document.getElementById('distanceInput');
-const locationNameInput = document.getElementById('locationNameInput');
+// Attention : on récupère les inputs dans les fonctions pour éviter les conflits d'ID
 
 // =============================================================
 // 2. NAVIGATION
@@ -58,23 +92,13 @@ function changerVue(vue) {
 
     const cursor = document.getElementById('nav-cursor');
 
-    // 1. GESTION DU CONTENU (Views)
     Object.values(views).forEach(el => el.classList.add('hidden'));
     views[vue].classList.remove('hidden');
 
-    // 2. GESTION DU SLIDE (Le mouvement du fond noir)
-    // On déplace le curseur selon l'onglet choisi
-    if (vue === 'marathon') {
-        cursor.style.transform = 'translateX(0%)';
-    } else if (vue === 'map') {
-        cursor.style.transform = 'translateX(100%)';
-    } else if (vue === 'trophies') {
-        cursor.style.transform = 'translateX(200%)';
-    }
+    if (vue === 'marathon') cursor.style.transform = 'translateX(0%)';
+    else if (vue === 'map') cursor.style.transform = 'translateX(100%)';
+    else if (vue === 'trophies') cursor.style.transform = 'translateX(200%)';
 
-    // 3. GESTION DE LA COULEUR DU TEXTE
-    // Le bouton actif doit être BLANC (car il est sur le fond noir)
-    // Les autres doivent être GRIS (car ils sont sur le fond blanc)
     Object.keys(btns).forEach(key => {
         const btn = btns[key];
         if (key === vue) {
@@ -83,12 +107,10 @@ function changerVue(vue) {
         } else {
             btn.classList.remove('text-white');
             btn.classList.add('text-slate-400');
-            // Petit effet hover pour les boutons inactifs
             btn.classList.add('hover:text-slate-600');
         }
     });
 
-    // 4. Logique spécifique
     if (vue === 'map') {
         initMap();
         setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 300);
@@ -99,16 +121,9 @@ function changerVue(vue) {
 }
 
 // =============================================================
-// 3. FONCTIONS DE SAISIE & INTERFACE
+// 3. FONCTIONS DE SAISIE
 // =============================================================
 
-function vibrer(type) {
-    if (!window.navigator.vibrate) return;
-    if (type === "succès") window.navigator.vibrate([50, 30, 50]);
-    else if (type === "pile") window.navigator.vibrate(200);
-}
-
-// Nouvelle fonction pour gérer visuellement le choix 🦄 ou 3️⃣ dans la modale
 function changerTypeSaisie(nouveauType) {
     typeEnCours = nouveauType;
     const btnK = document.getElementById('btn-select-K');
@@ -123,11 +138,7 @@ function changerTypeSaisie(nouveauType) {
     }
 }
 
-// =============================================================
-// FONCTIONS UTILITAIRES POUR LE GPS & AUTOCOMPLETE
-// =============================================================
-
-// 1. Mathématiques (Calcul de distance)
+// GPS & Autocomplete
 function getDistanceEnMetres(lat1, lon1, lat2, lon2) {
     const R = 6371e3; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -139,20 +150,17 @@ function getDistanceEnMetres(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// 2. Détection Intelligente
 function detecterLieuEtAutocomplet() {
     const input = document.getElementById('locationNameInput');
     const datalist = document.getElementById('lieux-connus');
     const hint = document.getElementById('gpsHint');
     
-    // Reset visuel
     if(input) {
         input.value = "";
         input.classList.remove('border-green-500', 'bg-green-50');
     }
     if(hint) hint.classList.add('hidden');
 
-    // Construire la liste pour l'autocomplete
     const lieuxUniques = {};
     activites.forEach(a => {
         if (a.nom && a.lat && a.lng) {
@@ -160,22 +168,18 @@ function detecterLieuEtAutocomplet() {
         }
     });
 
-    // Remplir la datalist HTML
     if(datalist) {
         datalist.innerHTML = Object.keys(lieuxUniques).map(nom => `<option value="${nom}">`).join('');
     }
 
-    // Lancer le GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
             const myLat = pos.coords.latitude;
             const myLng = pos.coords.longitude;
-            
-            // IMPORTANT : On met à jour la coordonnée globale pour l'enregistrement
             coordEnCours = { lat: myLat, lng: myLng };
 
             let meilleurMatch = null;
-            let distanceMin = 50; // Rayon de 50m
+            let distanceMin = 50; 
 
             for (const [nom, coords] of Object.entries(lieuxUniques)) {
                 const distance = getDistanceEnMetres(myLat, myLng, coords.lat, coords.lng);
@@ -191,29 +195,18 @@ function detecterLieuEtAutocomplet() {
                 input.classList.add('border-green-500', 'bg-green-50');
             }
 
-        }, (err) => {
-            console.log("GPS Erreur ou Refus :", err);
-        }, { enableHighAccuracy: true, timeout: 5000 });
+        }, (err) => console.log("GPS err", err), { enableHighAccuracy: true, timeout: 5000 });
     }
 }
 
-// =============================================================
-// FONCTION D'OUVERTURE DE POPUP (Corrigée)
-// =============================================================
-
 function ouvrirPopup(typeDefaut, coords = null, nomPredefini = "") {
     idEnCours = null; 
-    
-    // On s'assure de récupérer les éléments frais du DOM
     const inputNom = document.getElementById('locationNameInput');
     const inputDist = document.getElementById('distanceInput');
     const modalEl = document.getElementById('modal');
 
-    // Gestion du type et des étoiles
-    if(typeof changerTypeSaisie === "function") changerTypeSaisie(typeDefaut || 'K');
-    if(typeof changerNote === "function") changerNote(0); 
+    changerTypeSaisie(typeDefaut || 'K');
 
-    // Titre
     const titreEl = document.getElementById('modalTitle');
     if(titreEl) {
         titreEl.innerText = coords 
@@ -221,74 +214,42 @@ function ouvrirPopup(typeDefaut, coords = null, nomPredefini = "") {
             : "Ajouter une distance";
     }
     
-    // Logique Principale
     if (coords) {
-        // Cas 1 : Clic sur la carte (Manuel)
         coordEnCours = coords;
         if(inputNom) inputNom.value = nomPredefini;
-        // On cache l'indice GPS si on force un lieu
         const hint = document.getElementById('gpsHint');
         if(hint) hint.classList.add('hidden');
     } else {
-        // Cas 2 : Bouton "+" (Automatique)
-        // On lance la détection
         detecterLieuEtAutocomplet();
     }
     
-    // Affichage
     if(modalEl) modalEl.classList.remove('hidden');
     if(inputDist) inputDist.focus();
 }
 
-function modifierLigne(id) {
-    const ligne = activites.find(a => a.id === id);
-    if (ligne) {
-        idEnCours = id;
-        coordEnCours = null; 
-        changerTypeSaisie(ligne.type);
-        
-        document.getElementById('modalTitle').innerText = "Modifier l'entrée";
-        distanceInput.value = (ligne.valeurMetres * 100).toFixed(0);
-        locationNameInput.value = ligne.nom || "";
-        
-        modal.classList.remove('hidden');
-        distanceInput.focus();
-    }
-}
-
 function fermerPopup() {
-    modal.classList.add('hidden');
-    distanceInput.value = "";
-    locationNameInput.value = "";
+    document.getElementById('modal').classList.add('hidden');
+    const i1 = document.getElementById('distanceInput');
+    const i2 = document.getElementById('locationNameInput');
+    if(i1) i1.value = "";
+    if(i2) i2.value = "";
     coordEnCours = null;
 }
 
 function validerSaisie() {
-    console.log("🟢 Clic sur Valider..."); // Pour vérifier que le bouton marche
-
-    // 1. On récupère les éléments HTML proprement
     const inputDist = document.getElementById('distanceInput');
     const inputNom = document.getElementById('locationNameInput');
 
-    // Sécurité : si le HTML est cassé
-    if (!inputDist || !inputNom) {
-        alert("Erreur : Impossible de trouver les champs de saisie dans le HTML.");
-        return;
-    }
+    if (!inputDist) return;
 
-    // 2. Récupération des valeurs
     const valTexte = inputDist.value;
     const cm = parseFloat(valTexte);
-    const nomLieu = inputNom.value.trim();
+    const nomLieu = inputNom ? inputNom.value.trim() : "";
 
-    console.log("Valeur saisie :", cm, "Nom :", nomLieu);
-
-    // 3. Vérification de la validité (Doit être un nombre positif)
     if (!isNaN(cm) && cm >= 0) {
         const metres = cm / 100;
         
         if (idEnCours !== null) {
-            // --- MODE MODIFICATION ---
             const index = activites.findIndex(a => a.id === idEnCours);
             if (index !== -1) {
                 if (cm === 0) {
@@ -296,57 +257,40 @@ function validerSaisie() {
                 } else {
                     activites[index].valeurMetres = metres;
                     activites[index].type = typeEnCours;
-                    // On garde la note si elle existe, sinon on met celle en cours
-                    activites[index].note = (typeof noteEnCours !== 'undefined') ? noteEnCours : 0;
-                    if(nomLieu) activites[index].nom = nomLieu;
+                    activites[index].nom = nomLieu;
                 }
             }
         } else if (cm > 0) {
-            // --- MODE CRÉATION ---
-            
-            // Par défaut : coordonnées GPS actuelles (ou nulles)
             let finalLat = coordEnCours ? coordEnCours.lat : null;
             let finalLng = coordEnCours ? coordEnCours.lng : null;
 
-            // REGROUPEMENT : On vérifie si ce nom existe déjà
             if (nomLieu) {
-                // On cherche un lieu avec le même nom (insensible à la casse) et qui a des coordonnées
                 const lieuExistant = activites.find(a => 
-                    a.nom && 
-                    a.nom.toLowerCase() === nomLieu.toLowerCase() && 
-                    a.lat && a.lng
+                    a.nom && a.nom.toLowerCase() === nomLieu.toLowerCase() && a.lat && a.lng
                 );
-                
                 if (lieuExistant) {
-                    // On s'aligne sur l'existant
                     finalLat = lieuExistant.lat;
                     finalLng = lieuExistant.lng;
-                    console.log("📍 Regroupement avec : " + nomLieu);
                 }
             }
 
             activites.unshift({
                 id: Date.now(),
                 date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-                type: typeEnCours, // Variable globale définie dans script.js
+                type: typeEnCours,
                 valeurMetres: metres,
                 nom: nomLieu,
-                note: (typeof noteEnCours !== 'undefined') ? noteEnCours : 0,
+                note: 0,
                 lat: finalLat,
                 lng: finalLng
             });
         }
         
-        // 4. Sauvegarde et fermeture
         sauvegarderEtAfficher();
         fermerPopup();
-        
-        // Rafraîchir la carte si elle est chargée
-        if (typeof mapInstance !== 'undefined' && mapInstance) {
-            chargerMarqueurs();
-        }
+        if (typeof mapInstance !== 'undefined' && mapInstance) chargerMarqueurs();
     } else {
-        alert("Veuillez entrer une distance valide (chiffre).");
+        alert("Veuillez entrer une distance valide.");
     }
 }
 
@@ -359,82 +303,98 @@ function resetData() {
 }
 
 // =============================================================
-// 4. LOGIQUE PRINCIPALE
+// 4. LOGIQUE PRINCIPALE (SAUVEGARDE ET AFFICHAGE)
 // =============================================================
 
 function sauvegarderEtAfficher() {
-    // 1. Sauvegarde dans le téléphone
+    // 1. Sauvegarde
     localStorage.setItem('sport_data', JSON.stringify(activites));
 
-    // 2. Calcul des Totaux
-    let totalK = 0;
-    let total3 = 0;
-
+    // 2. Calculs
+    let totalK = 0, total3 = 0;
     activites.forEach(a => {
         if (a.type === 'K') totalK += a.valeurMetres;
         else total3 += a.valeurMetres;
     });
-
-    // Mise à jour des compteurs du haut
-    document.getElementById('totalK').innerText = totalK.toFixed(2) + " m";
-    document.getElementById('total3').innerText = total3.toFixed(2) + " m";
-
     const totalGeneral = totalK + total3;
-    document.getElementById('totalGeneral').innerText = totalGeneral.toFixed(2) + " m";
 
-    // Mise à jour de la barre de progression & Fun Fact
-    // (On garde ta logique de megaBiblio ici, je simplifie pour l'exemple mais ton code reste le même)
-    // ... ta logique de barre de progression est ici normalement ...
+    // Mise à jour DOM des totaux
+    const tk = document.getElementById('totalK'); if(tk) tk.innerText = totalK.toFixed(2) + " m";
+    const t3 = document.getElementById('total3'); if(t3) t3.innerText = total3.toFixed(2) + " m";
+    const tg = document.getElementById('totalGeneral'); if(tg) tg.innerText = totalGeneral.toFixed(2) + " m";
 
-    // 3. Génération de la liste (C'EST ICI QUE ÇA CHANGE POUR LE MODE DISCRET)
+    // 3. WIDGET DE PROGRESSION (Réparé selon tes IDs HTML)
+    let nextTrophy = TROPHY_LIST.find(t => t.m > totalGeneral);
+    let targetM = nextTrophy ? nextTrophy.m : (totalGeneral * 1.5);
+    let targetName = nextTrophy ? nextTrophy.name : "L'infini";
+
+    // Pourcentage
+    let percent = totalGeneral > 0 ? (totalGeneral / targetM) * 100 : 0;
+    if (percent > 100) percent = 100;
+
+    // Mise à jour des éléments visuels du widget
+    const progressBar = document.getElementById('progressBar');
+    const funFact = document.getElementById('funFact');
+    const nextMilestone = document.getElementById('nextMilestone');
+
+    if (progressBar) progressBar.style.width = percent + "%";
+    
+    if (funFact) {
+        if (totalGeneral === 0) {
+            funFact.innerText = "Commencez pour voir une comparaison !";
+        } else {
+            // Trouve le plus grand trophée accompli
+            const done = [...TROPHY_LIST].reverse().find(t => t.m <= totalGeneral);
+            if (done) {
+                const count = (totalGeneral / done.m).toFixed(1);
+                funFact.innerText = `C'est environ ${count}x ${done.name} (${done.m}m)`;
+            } else {
+                funFact.innerText = "En route vers la gloire...";
+            }
+        }
+    }
+
+    if (nextMilestone) {
+        nextMilestone.innerText = `Objectif : ${targetName} (${(targetM - totalGeneral).toFixed(2)}m restants)`;
+    }
+
+    // 4. GÉNÉRATION DE LA LISTE (Avec Date !)
     const liste = document.getElementById('listeActivites');
     let html = "";
-
-    // On récupère le thème actuel (Party ou Bureau)
     const theme = getTheme(); 
 
-    activites.forEach((act, index) => {
-        // On choisit l'icône selon le type ET le thème
+    activites.forEach((act) => {
         const iconeVisuelle = act.type === 'K' ? theme.iconeK : theme.icone3;
+        const stars = act.note > 0 ? "⭐".repeat(act.note) : "";
         
-        // Gestion des étoiles
-        let stars = "";
-        if (act.note > 0) {
-            stars = "⭐".repeat(act.note);
-        }
-
         html += `
-            <div onclick="ouvrirPopup('${act.type}', null, '${act.nom || ''}'); idEnCours=${act.id}; noteEnCours=${act.note || 0}; distanceInput.value=${(act.valeurMetres*100).toFixed(0)}" 
+            <div onclick="ouvrirPopup('${act.type}', null, '${(act.nom || '').replace(/'/g, "\\'")}'); idEnCours=${act.id}; distanceInput.value=${(act.valeurMetres*100).toFixed(0)}" 
             class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden group hover:border-purple-200 transition-colors cursor-pointer mb-2">
                 
-                <div class="flex items-center gap-3 z-10">
-                    <span class="text-2xl">${iconeVisuelle}</span> 
-                    <div>
-                        <p class="font-bold text-slate-700 text-sm">
-                            ${(act.valeurMetres * 100).toFixed(0)} <span class="text-[10px] text-slate-400">CM</span>
-                        </p>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                <div class="flex items-center gap-3 z-10 w-full">
+                    <span class="text-2xl shrink-0">${iconeVisuelle}</span> 
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline">
+                            <p class="font-bold text-slate-700 text-sm">
+                                ${(act.valeurMetres * 100).toFixed(0)} <span class="text-[10px] text-slate-400">CM</span>
+                            </p>
+                            <p class="text-[10px] text-slate-300 font-mono shrink-0">${act.date || ''}</p>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
                             ${act.nom || 'Sans nom'} <span class="text-amber-400">${stars}</span>
                         </p>
                     </div>
-                </div>
-
-                <div class="text-slate-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
                 </div>
             </div>
         `;
     });
 
-    liste.innerHTML = html;
+    if(liste) liste.innerHTML = html;
 }
 
 // =============================================================
-// 5. GESTION DE LA CARTE (Regroupement des points)
+// 5. CARTE
 // =============================================================
-
 let mapInstance = null;
 let userMarker = null;
 
@@ -447,9 +407,8 @@ function initMap() {
         attribution: '&copy; OpenStreetMap', subdomains: 'abcd', maxZoom: 20
     }).addTo(mapInstance);
 
-    // Clic sur la carte (zone vide) -> Nouveau point
     mapInstance.on('click', function(e) {
-        ouvrirPopup('K', e.latlng); // Ouvre avec Licorne par défaut, mais modifiable
+        ouvrirPopup('K', e.latlng);
     });
 
     mapInstance.locate({watch: true, enableHighAccuracy: true});
@@ -467,55 +426,32 @@ function initMap() {
     setTimeout(() => { mapInstance.invalidateSize(); }, 200);
 }
 
-// Fonction spéciale pour ajouter à un endroit déjà existant
-// Elle est appelée depuis le bouton HTML dans la popup du marqueur
-window.ajouterSurLieuExistant = function(lat, lng, nomEncode) {
-    const nom = decodeURIComponent(nomEncode);
-    // On ouvre la popup avec ces coordonnées et ce nom
-    ouvrirPopup('K', { lat: lat, lng: lng }, nom);
-};
-
 function chargerMarqueurs() {
-    // Si la carte n'est pas prête, on arrête
     if (!mapInstance) return;
 
-    // On nettoie les anciens marqueurs (sauf l'utilisateur)
     mapInstance.eachLayer((layer) => {
         if (layer instanceof L.Marker && layer !== userMarker) {
             mapInstance.removeLayer(layer);
         }
     });
 
-    // On regroupe les activités par lieu (nom + coords)
     const lieux = {};
     activites.forEach(a => {
         if (a.lat && a.lng) {
-            // Clé unique basée sur les coordonnées pour grouper
             const key = a.lat.toFixed(5) + "," + a.lng.toFixed(5);
-            
             if (!lieux[key]) {
-                lieux[key] = {
-                    lat: a.lat,
-                    lng: a.lng,
-                    nom: a.nom || "Lieu mystère",
-                    total: 0,
-                    count: 0
-                };
+                lieux[key] = { lat: a.lat, lng: a.lng, nom: a.nom || "Lieu mystère", total: 0 };
             }
             lieux[key].total += a.valeurMetres;
-            lieux[key].count += 1;
         }
     });
 
-    // C'EST ICI QUE ÇA CHANGE : On récupère le thème pour savoir quel emoji afficher
     const theme = getTheme(); 
-    const emojiMap = theme.iconeMap; // Sera soit 👃 soit 📌
+    const emojiMap = theme.iconeMap;
 
-    // On place les marqueurs
     Object.values(lieux).forEach(lieu => {
-        
         const customIcon = L.divIcon({
-            className: 'custom-map-icon pin-icon', // J'ai ajouté pin-icon pour l'animation CSS
+            className: 'custom-map-icon pin-icon', 
             html: `<div style="font-size: 28px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); transform: translateY(-10px);">${emojiMap}</div>`,
             iconSize: [30, 30],
             iconAnchor: [15, 30],
@@ -524,7 +460,6 @@ function chargerMarqueurs() {
 
         const marker = L.marker([lieu.lat, lieu.lng], {icon: customIcon}).addTo(mapInstance);
         
-        // Popup au clic
         marker.bindPopup(`
             <div class="text-center">
                 <strong class="block text-sm mb-1">${lieu.nom}</strong>
@@ -542,14 +477,15 @@ function chargerMarqueurs() {
 }
 
 // =============================================================
-// 6. PARTAGE & PHOTO (Copie ton code précédent ici)
+// 6. PARTAGE & PHOTO
 // =============================================================
-// ... (Garde ton code de partage d'image existant, il n'a pas besoin de changer)
 function ouvrirMenuPartage() { document.getElementById('photoModal').style.display = 'flex'; }
 function fermerModal() { document.getElementById('photoModal').style.display = 'none'; }
 function declencherAjoutPhoto() { const i = document.getElementById('imageInputTrigger'); if(i){ i.value=""; i.click(); } }
 function lancerGenerationSansPhoto() { document.getElementById('photoContainer').style.display='none'; fermerModal(); genererImageEtAfficherApercu(); }
 function traiterLaPhoto(i) { if(i.files && i.files[0]) { fermerModal(); let r = new FileReader(); r.onload=function(e){ let img=document.getElementById('userPhoto'); if(img){ img.src=e.target.result; document.getElementById('photoContainer').style.display='block'; setTimeout(()=>{genererImageEtAfficherApercu()},300); } }; r.readAsDataURL(i.files[0]); } }
+
+// DANS script.js, remplace la fonction genererImageEtAfficherApercu par celle-ci :
 
 function genererImageEtAfficherApercu() {
     const totalGen = document.getElementById('totalGeneral').innerText.replace(' m', '');
@@ -558,17 +494,24 @@ function genererImageEtAfficherApercu() {
     document.getElementById('shareTotalGeneral').innerText = totalGen;
 
     let rawFact = document.getElementById('funFact').innerText;
-    let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "PILE : ").replace("En attente de data...", "");
-    let texteFinal = cleanFact.replace(/[^a-zA-Z0-9àâäéèêëîïôöùûüçÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ\s.,!?'"()\/-]/g, '').trim().toUpperCase();
-    if (texteFinal.length === 0) texteFinal = "MON WRAPPED";
+    
+    // 1. On enlève le début de phrase
+    let cleanFact = rawFact.replace("C'est environ ", "").replace("C'est exactement la taille de ", "");
 
-    let taillePolice = 38;
-    if (texteFinal.length > 60) taillePolice = 22; else if (texteFinal.length > 40) taillePolice = 26; else if (texteFinal.length > 25) taillePolice = 30;
+    // 2. LA MODIF EST ICI : On enlève la partie entre parenthèses (la taille en mètres)
+    // Cette ligne cherche "espace + parenthèse + n'importe quoi + parenthèse" et l'efface
+    cleanFact = cleanFact.replace(/\s*\(.*?\)/, "");
 
-    const s = document.getElementById('shareFunFactSolid'); const h = document.getElementById('shareFunFactHollow');
-    s.style.fontSize = taillePolice + "px"; h.style.fontSize = taillePolice + "px";
-    s.innerText = texteFinal; h.innerText = texteFinal;
+    let texteFinal = cleanFact.trim().toUpperCase();
+    if (texteFinal.length === 0) texteFinal = "MON SUIVI";
 
+    // Mise à jour des textes de la carte
+    const s = document.getElementById('shareFunFactSolid'); 
+    const h = document.getElementById('shareFunFactHollow');
+    s.innerText = texteFinal; 
+    h.innerText = texteFinal;
+
+    // --- Le reste de la fonction ne change pas ---
     document.querySelectorAll('[id^="clone_"]').forEach(el => el.remove());
     const o = document.getElementById('shareCardContainer'); const c = o.cloneNode(true);
     const uid = "clone_" + Date.now(); c.id = uid;
@@ -607,73 +550,28 @@ function afficherEcranValidation(blob) {
     close.onclick = () => document.body.removeChild(ov);
     ov.appendChild(img); ov.appendChild(btn); ov.appendChild(close); document.body.appendChild(ov);
 }
-// 7. SAUVEGARDE (Inchangé)
+
 function copierDonnees() { const d = { ...localStorage }; const s = JSON.stringify(d); if(s==="{}"){alert("Rien à sauvegarder");return;} navigator.clipboard.writeText(s).then(()=>alert("✅ Copié !")).catch(()=>prompt("Copie ça:",s)); }
 async function collerDonnees() { try { const t = await navigator.clipboard.readText(); const d = JSON.parse(t); localStorage.clear(); for(const[k,v]of Object.entries(d))localStorage.setItem(k,v); activites = JSON.parse(localStorage.getItem('sport_data'))||[]; sauvegarderEtAfficher(); alert("✅ Restauré !"); } catch(e){alert("Erreur: "+e.message);} }
 
-sauvegarderEtAfficher();
-
 // =============================================================
-// 8. SYSTÈME DE TROPHÉES (Vue dédiée)
+// 7. VUE TROPHÉES
 // =============================================================
-
-const TROPHY_LIST = [
-    { m: 0.02, icon: "🎚️", name: "Fader" },
-    { m: 0.05, icon: "👂", name: "Bouchon d'oreille" },
-    { m: 0.30, icon: "💿", name: "Vinyle Maxi" },
-    { m: 1.00, icon: "🔌", name: "Câble XLR" },
-    { m: 1.57, icon: "🌸", name: "Fleur" },
-    { m: 1.63, icon: "👸", name: "Sara" },
-    { m: 1.65, icon: "💀", name: "Anaïs" },
-    { m: 1.65, icon: "🦶", name: "Kim" },
-    { m: 1.70, icon: "🐅", name: "Gabriel" },
-    { m: 1.70, icon: "🤐", name: "Raph" },
-    { m: 1.88, icon: "🎸", name: "Jolan the tracer" },
-    { m: 1.90, icon: "🥸", name: "Adrien askip" },
-    { m: 2.50, icon: "🏛️", name: "Palais Longchamp" },
-    { m: 5.00, icon: "🗿", name: "Le David" },
-    { m: 5.26, icon: "🗽", name: "Tête Liberté" }, // NOUVEAU
-    { m: 6.26, icon: "🥖", name: "Saut Perche" }, // NOUVEAU
-    { m: 7.32, icon: "⚽", name: "But de Foot" }, // NOUVEAU
-    { m: 7.62, icon: "🚐", name: "Breaking Bad" }, // NOUVEAU
-    { m: 9.15, icon: "👮", name: "Mur Coup-franc" }, // NOUVEAU
-    { m: 11.2, icon: "⛪", name: "Bonne Mère" },
-    { m: 12.19, icon: "🚢", name: "Conteneur 40'" }, // NOUVEAU
-    { m: 13.76, icon: "🦖", name: "T-Rex" }, // NOUVEAU
-    { m: 15.00, icon: "🔵", name: "Pétanque" }, // INDISPENSABLE
-    { m: 18.29, icon: "🎳", name: "Bowling" }, // NOUVEAU
-    { m: 25.0, icon: "🚌", name: "Bus 83" },
-    { m: 45.0, icon: "🏰", name: "Château d'If" },
-    { m: 60.0, icon: "🏟️", name: "Vélodrome" },
-    { m: 86.0, icon: "🎡", name: "Grande Roue" },
-    { m: 149, icon: "⛪", name: "Sommet N-D Garde" },
-    { m: 161, icon: "🏙️", name: "Tour CMA CGM" },
-    { m: 300, icon: "🌑", name: "Berghain" },
-    { m: 828, icon: "🏗️", name: "Burj Khalifa" }
-];
 
 window.voirDetailsTrophee = function(index) {
     const trophee = TROPHY_LIST[index];
-    
-    // 1. Calcul du total actuel
     let totalK = 0, total3 = 0;
     activites.forEach(a => {
         if (a.type === 'K') totalK += a.valeurMetres;
         else total3 += a.valeurMetres;
     });
     const totalM = totalK + total3;
+    const fois = (totalM / trophee.m).toFixed(1);
 
-    // 2. Le Calcul Magique (Combien de fois ?)
-    const fois = (totalM / trophee.m).toFixed(1); // 1 chiffre après la virgule
-    const pourcentage = ((totalM / trophee.m) * 100).toFixed(0);
-
-    // 3. Le Message
     if (totalM < trophee.m) {
-        // Pas encore débloqué
         const manque = (trophee.m - totalM).toFixed(2);
         alert(`🔒 Ce trophée est bloqué.\n\nIl te manque encore ${manque} mètres pour l'atteindre !`);
     } else {
-        // Débloqué
         alert(`Tu as tapé ${fois} fois ${trophee.name} !`);
     }
 };
@@ -682,7 +580,6 @@ function chargerTrophees() {
     const grid = document.getElementById('trophyGrid');
     const progressLabel = document.getElementById('trophyProgress');
     
-    // Calcul du total
     let totalK = 0, total3 = 0;
     activites.forEach(a => {
         if (a.type === 'K') totalK += a.valeurMetres;
@@ -693,16 +590,11 @@ function chargerTrophees() {
     let unlockedCount = 0;
     let html = "";
 
-    // Note l'ajout de 'index' dans la boucle pour identifier quel trophée on clique
     TROPHY_LIST.forEach((t, index) => {
         const isUnlocked = totalM >= t.m;
         if (isUnlocked) unlockedCount++;
 
-        // On ajoute onclick="voirDetailsTrophee(${index})" sur les divs
-        // On ajoute cursor-pointer et active:scale-95 pour l'effet bouton
-
         if (isUnlocked) {
-            // DÉBLOQUÉ
             html += `
                 <div onclick="voirDetailsTrophee(${index})" class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 flex flex-col items-center justify-center gap-2 relative overflow-hidden cursor-pointer transition-transform active:scale-95 hover:shadow-md" style="animation: popIn 0.3s ease-out forwards;">
                     <div class="absolute inset-0 bg-gradient-to-br from-yellow-50 to-white opacity-50 pointer-events-none"></div>
@@ -712,7 +604,6 @@ function chargerTrophees() {
                 </div>
             `;
         } else {
-            // BLOQUÉ
             const manque = (t.m - totalM).toFixed(2);
             html += `
                 <div onclick="voirDetailsTrophee(${index})" class="bg-slate-100 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center gap-2 opacity-60 grayscale relative cursor-pointer active:scale-95">
@@ -729,66 +620,74 @@ function chargerTrophees() {
     if(progressLabel) progressLabel.innerText = `${unlockedCount} / ${TROPHY_LIST.length} DÉBLOQUÉS`;
 }
 
-function basculerModeDiscret() {
-    modeDiscretActif = !modeDiscretActif;
+// =============================================================
+// 8. MODE DISCRET & CLIC SECRET (AVEC MÉMOIRE)
+// =============================================================
+
+// Cette fonction applique juste les changements visuels sans changer l'état
+function appliquerThemeVisuel() {
     const t = getTheme();
     
-    // 1. Mettre à jour les textes statiques
-    document.querySelector('h1').innerText = t.titre;
+    // Titre
+    const h1 = document.querySelector('h1');
+    if(h1) h1.innerText = t.titre;
     
-    // Les gros compteurs du haut
-    // Note : Il faudra ajouter des ID à tes <p> d'icônes dans le HTML pour faire ça proprement,
-    // mais ici on va le faire à la brute pour l'exemple :
+    // Compteurs du haut
     const cards = document.querySelectorAll('.grid-cols-2 .text-2xl');
     if(cards.length >= 2) {
         cards[0].innerText = t.iconeK;
         cards[1].innerText = t.icone3;
     }
 
-    // Les boutons d'ajout
+    // Boutons d'ajout (Accueil)
     const btns = document.querySelectorAll('.grid-cols-2 button');
     if(btns.length >= 2) {
         btns[0].innerText = t.btnK;
         btns[1].innerText = t.btn3;
     }
 
-    // Les boutons dans la modale (Sélecteurs)
+    // Boutons dans la modale (Sélecteurs)
     const btnSelectK = document.getElementById('btn-select-K');
     const btnSelect3 = document.getElementById('btn-select-3');
     if(btnSelectK) btnSelectK.innerText = t.iconeK;
     if(btnSelect3) btnSelect3.innerText = t.icone3;
 
-    // 2. Rafraîchir l'historique (pour changer les icônes dans la liste)
+    // Rafraîchir les listes et cartes
     sauvegarderEtAfficher();
-
-    // 3. Rafraîchir la carte (pour changer les Nez en Punaises)
     if(mapInstance) chargerMarqueurs();
+}
 
-    // Petit feedback visuel
+function basculerModeDiscret() {
+    // 1. On change l'état
+    modeDiscretActif = !modeDiscretActif;
+    
+    // 2. SAUVEGARDE DANS LA MÉMOIRE DU TÉLÉPHONE
+    localStorage.setItem('mode_discret_actif', modeDiscretActif);
+
+    // 3. On applique les visuels
+    appliquerThemeVisuel();
+
+    // 4. Feedback
     alert(modeDiscretActif ? "💼 Mode Bureau activé" : "🦄 Mode Party activé");
 }
 
 let clickTimer = null;
 let clickCount = 0;
-
 function gererClicSecret() {
     clickCount++;
     if (clickCount === 1) {
-        clickTimer = setTimeout(() => {
-            clickCount = 0; // Reset si pas de 2ème clic rapide
-        }, 400); // 400ms pour faire le 2ème clic
+        clickTimer = setTimeout(() => { clickCount = 0; }, 400);
     } else if (clickCount === 2) {
         clearTimeout(clickTimer);
         clickCount = 0;
-        basculerModeDiscret(); // BINGO
+        basculerModeDiscret();
     }
 }
 
-// =============================================================
-// OUTIL RÈGLE DIGITALE (VERSION SYNCHRONISÉE)
-// =============================================================
 
-// 👉 RÈGLE TA TAILLE ICI UNE SEULE FOIS (ex: "1.62cm")
+// =============================================================
+// 9. OUTIL RÈGLE (SYNCHRONISÉ)
+// =============================================================
 const CALIBRATION_CSS = "1.62cm"; 
 
 let rulerStart = null;
@@ -796,19 +695,10 @@ let currentDistCM = 0;
 let pixelsPerUnit = 0; 
 
 function ouvrirRegle() {
-    const modal = document.getElementById('rulerModal');
-    modal.classList.remove('hidden');
-    
-    // 1. On force le CSS via JS pour être sûr d'être synchro
+    document.getElementById('rulerModal').classList.remove('hidden');
     forcerGrilleCSS();
-    
-    // 2. On calcule l'échelle mathématique sur la même base
     calibrerEchelle();
-    
     initRulerCanvas();
-    
-    // Afficher les infos de debug
-    document.getElementById('debugValue').classList.remove('opacity-0');
 }
 
 function fermerRegle() {
@@ -820,12 +710,8 @@ function resetRegle() {
     currentDistCM = 0;
     rulerStart = null;
     document.getElementById('rulerValue').innerHTML = `0 <span class="text-sm">cm</span>`;
-    document.getElementById('debugValue').innerText = "Raw: 0.00";
     const canvas = document.getElementById('rulerCanvas');
-    if(canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+    if(canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function validerRegle() {
@@ -834,8 +720,6 @@ function validerRegle() {
     fermerRegle();
 }
 
-// Cette fonction force le style CSS directement depuis le JS
-// Plus besoin de modifier style.css !
 function forcerGrilleCSS() {
     const styleId = 'dynamic-grid-style';
     let styleTag = document.getElementById(styleId);
@@ -844,7 +728,6 @@ function forcerGrilleCSS() {
         styleTag.id = styleId;
         document.head.appendChild(styleTag);
     }
-    // On injecte la règle CSS avec la variable CALIBRATION_CSS
     styleTag.innerHTML = `
         .grid-background {
             background-size: ${CALIBRATION_CSS} ${CALIBRATION_CSS} !important;
@@ -854,18 +737,13 @@ function forcerGrilleCSS() {
 
 function calibrerEchelle() {
     const div = document.createElement("div");
-    // On utilise la MEME variable
     div.style.width = CALIBRATION_CSS; 
     div.style.height = "10px";
     div.style.position = "absolute";
-    // On évite visibility:hidden qui bug parfois sur mobile, on le sort de l'écran
     div.style.left = "-9999px"; 
     document.body.appendChild(div);
-    
     pixelsPerUnit = div.getBoundingClientRect().width; 
-    
     document.body.removeChild(div);
-    console.log(`Calibration : ${CALIBRATION_CSS} = ${pixelsPerUnit}px`);
 }
 
 function initRulerCanvas() {
@@ -873,7 +751,6 @@ function initRulerCanvas() {
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
     const displayVal = document.getElementById('rulerValue');
-    const debugVal = document.getElementById('debugValue');
 
     const rect = zone.getBoundingClientRect();
     canvas.width = rect.width;
@@ -893,59 +770,36 @@ function initRulerCanvas() {
     };
 
     let isDrawing = false;
-
     const start = (e) => {
         if(e.type === 'touchstart') e.preventDefault(); 
         isDrawing = true;
         rulerStart = getCoords(e);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         ctx.beginPath();
         ctx.arc(rulerStart.x, rulerStart.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = "#9333ea";
-        ctx.fill();
+        ctx.fillStyle = "#9333ea"; ctx.fill();
     };
 
     const move = (e) => {
         if (!isDrawing || !rulerStart) return;
         if(e.type === 'touchmove') e.preventDefault();
-
         const c = getCoords(e);
         
-        // 1. Distance Pixels
         const dx = c.x - rulerStart.x;
         const dy = c.y - rulerStart.y;
         const distPixels = Math.sqrt(dx*dx + dy*dy);
-
-        // 2. Conversion en Unités (Carreaux)
-        // C'est ici que la magie opère : distPixels / pixelsPerUnit
         const rawUnits = distPixels / pixelsPerUnit;
         
-        // --- LOGIQUE ARRONDI STRICT (0.85) ---
         const partieEntiere = Math.floor(rawUnits);
         const partieDecimale = rawUnits - partieEntiere;
-        
-        // Seuil à 0.85 (très strict, il faut presque finir le carreau)
         const SEUIL = 0.85; 
 
-        if (partieDecimale > SEUIL) {
-            currentDistCM = partieEntiere + 1;
-        } else {
-            currentDistCM = partieEntiere;
-        }
+        if (partieDecimale > SEUIL) currentDistCM = partieEntiere + 1;
+        else currentDistCM = partieEntiere;
 
-        // 3. Affichage
         displayVal.innerHTML = `${currentDistCM} <span class="text-sm">cm</span>`;
-        
-        // DEBUG : Affiche la valeur exacte (ex: 1.92)
-        // Si tu fais 2 carreaux, ça DOIT afficher environ 2.00 ici
-        if(debugVal) {
-            debugVal.innerText = `Raw: ${rawUnits.toFixed(2)} | Dec: ${partieDecimale.toFixed(2)}`;
-        }
 
-        // 4. Dessin
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         ctx.beginPath();
         ctx.moveTo(rulerStart.x, rulerStart.y);
         ctx.lineTo(c.x, c.y);
@@ -953,21 +807,17 @@ function initRulerCanvas() {
         ctx.strokeStyle = "#9333ea";
         ctx.setLineDash([10, 10]);
         ctx.stroke();
-
         ctx.beginPath();
         ctx.arc(rulerStart.x, rulerStart.y, 5, 0, 2 * Math.PI);
         ctx.arc(c.x, c.y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = "#9333ea";
-        ctx.fill();
+        ctx.fillStyle = "#9333ea"; ctx.fill();
     };
 
     const end = () => { isDrawing = false; };
-
-    zone.onmousedown = start;
-    zone.onmousemove = move;
-    zone.onmouseup = end;
-    zone.onmouseleave = end;
-    zone.ontouchstart = start;
-    zone.ontouchmove = move;
-    zone.ontouchend = end;
+    zone.onmousedown = start; zone.onmousemove = move; zone.onmouseup = end; zone.onmouseleave = end;
+    zone.ontouchstart = start; zone.ontouchmove = move; zone.ontouchend = end;
 }
+
+// LANCEMENT INITIAL
+appliquerThemeVisuel(); // Applique le thème (Party ou Bureau) sauvegardé
+// Note : appliquerThemeVisuel appelle déjà sauvegarderEtAfficher(), donc pas besoin de le remettre
