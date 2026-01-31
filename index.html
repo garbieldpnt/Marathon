@@ -22,7 +22,9 @@
 <div id="view-marathon" class="h-screen overflow-y-auto p-4 pb-24">
         
         <header class="mb-6">
-            <h1 class="text-2xl font-bold text-center mb-4 text-slate-800">Mon Suivi</h1>
+            <h1 onclick="gererClicSecret()" class="text-2xl font-bold text-center mb-4 text-slate-800 select-none cursor-pointer active:scale-95 transition-transform">
+    Mon Suivi
+</h1>
             <div class="grid grid-cols-2 gap-4">
                 <div class="card p-4 text-center border-l-4 border-purple-500 bg-white shadow-sm rounded-2xl">
                     <p class="text-2xl">🦄</p>
@@ -145,11 +147,17 @@
                 </button>
             </div>
 
-            <div class="relative mb-3">
-                <input type="number" id="distanceInput" inputmode="numeric" placeholder="0" 
-                    class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl p-4 text-3xl text-center focus:border-purple-500 outline-none font-black text-slate-700">
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">CM</span>
-            </div>
+            <div class="flex items-center gap-3 mb-6">
+    <div class="relative flex-1">
+        <input type="number" id="distanceInput" inputmode="decimal" placeholder="0" 
+            class="w-full border-2 border-slate-100 bg-slate-50 rounded-xl p-4 text-3xl text-center focus:border-purple-500 outline-none font-black text-slate-700">
+        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">CM</span>
+    </div>
+
+    <button onclick="ouvrirRegle()" class="w-16 h-[76px] bg-slate-100 border-2 border-slate-200 rounded-xl flex items-center justify-center active:scale-95 transition-transform shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ruler-icon lucide-ruler"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>
+    </button>
+</div>
             
             <div class="mb-6 relative">
                 <input type="text" id="locationNameInput" list="lieux-connus" placeholder="Nom du lieu (ex: Maison)" autocomplete="off"
@@ -219,6 +227,33 @@
     </div>
 
     <input type="file" id="imageInputTrigger" accept="image/*" onchange="traiterLaPhoto(this)" style="position: absolute; opacity: 0; width: 1px; height: 1px; top: 0; left: 0; z-index: -1;">
+<div id="rulerModal" class="hidden fixed inset-0 z-[6000] bg-white flex flex-col">
+    
+    <div class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md z-20">
+        <div>
+            <p class="text-[10px] uppercase font-bold text-slate-400">Mesure</p>
+            <p id="rulerValue" class="text-3xl font-black font-mono">0.0 <span class="text-sm">cm</span></p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="resetRegle()" class="px-4 py-2 bg-slate-700 rounded-lg text-xs font-bold">Effacer</button>
+            <button onclick="validerRegle()" class="px-4 py-2 bg-purple-600 rounded-lg text-xs font-bold">Valider</button>
+        </div>
+    </div>
+
+    <div id="touchZone" class="flex-1 relative cursor-crosshair overflow-hidden" style="touch-action: none;">
+        <div class="absolute inset-0 grid-background pointer-events-none"></div>
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+            <p class="text-3xl font-black text-slate-300 -rotate-45 text-center">
+                Pose le fil ou<br>glisse le doigt
+            </p>
+        </div>
+        <canvas id="rulerCanvas" class="absolute inset-0 w-full h-full"></canvas>
+    </div>
+    
+    <button onclick="fermerRegle()" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold shadow-lg text-sm z-20">
+        Fermer
+    </button>
+</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="script.js"></script>
