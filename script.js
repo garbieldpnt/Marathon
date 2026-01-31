@@ -785,18 +785,30 @@ function gererClicSecret() {
 }
 
 // =============================================================
-// OUTIL RÈGLE DIGITALE (CORRIGÉ)
+// OUTIL RÈGLE DIGITALE (VERSION SYNCHRONISÉE)
 // =============================================================
+
+// 👉 RÈGLE TA TAILLE ICI UNE SEULE FOIS (ex: "1.62cm")
+const CALIBRATION_CSS = "1.62cm"; 
 
 let rulerStart = null;
 let currentDistCM = 0;
-let pixelsPerCM = 0; // Sera calculé dynamiquement
+let pixelsPerUnit = 0; 
 
 function ouvrirRegle() {
-    document.getElementById('rulerModal').classList.remove('hidden');
-    // On calcule combien de pixels font 1cm sur CET écran spécifiquement
+    const modal = document.getElementById('rulerModal');
+    modal.classList.remove('hidden');
+    
+    // 1. On force le CSS via JS pour être sûr d'être synchro
+    forcerGrilleCSS();
+    
+    // 2. On calcule l'échelle mathématique sur la même base
     calibrerEchelle();
+    
     initRulerCanvas();
+    
+    // Afficher les infos de debug
+    document.getElementById('debugValue').classList.remove('opacity-0');
 }
 
 function fermerRegle() {
@@ -808,6 +820,7 @@ function resetRegle() {
     currentDistCM = 0;
     rulerStart = null;
     document.getElementById('rulerValue').innerHTML = `0 <span class="text-sm">cm</span>`;
+    document.getElementById('debugValue').innerText = "Raw: 0.00";
     const canvas = document.getElementById('rulerCanvas');
     if(canvas) {
         const ctx = canvas.getContext('2d');
@@ -817,24 +830,42 @@ function resetRegle() {
 
 function validerRegle() {
     const input = document.getElementById('distanceInput');
-    if(input) {
-        // On envoie l'entier arrondi
-        input.value = currentDistCM; 
-    }
+    if(input) input.value = currentDistCM; 
     fermerRegle();
 }
 
-// C'est ici qu'on assure que JS = CSS
+// Cette fonction force le style CSS directement depuis le JS
+// Plus besoin de modifier style.css !
+function forcerGrilleCSS() {
+    const styleId = 'dynamic-grid-style';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = styleId;
+        document.head.appendChild(styleTag);
+    }
+    // On injecte la règle CSS avec la variable CALIBRATION_CSS
+    styleTag.innerHTML = `
+        .grid-background {
+            background-size: ${CALIBRATION_CSS} ${CALIBRATION_CSS} !important;
+        }
+    `;
+}
+
 function calibrerEchelle() {
     const div = document.createElement("div");
-    div.style.width = "1cm";
-    div.style.height = "1cm";
+    // On utilise la MEME variable
+    div.style.width = CALIBRATION_CSS; 
+    div.style.height = "10px";
     div.style.position = "absolute";
-    div.style.visibility = "hidden";
+    // On évite visibility:hidden qui bug parfois sur mobile, on le sort de l'écran
+    div.style.left = "-9999px"; 
     document.body.appendChild(div);
-    pixelsPerCM = div.getBoundingClientRect().width; // La valeur EXACTE du navigateur
+    
+    pixelsPerUnit = div.getBoundingClientRect().width; 
+    
     document.body.removeChild(div);
-    console.log("Calibration : 1cm = " + pixelsPerCM + "px");
+    console.log(`Calibration : ${CALIBRATION_CSS} = ${pixelsPerUnit}px`);
 }
 
 function initRulerCanvas() {
@@ -842,116 +873,100 @@ function initRulerCanvas() {
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
     const displayVal = document.getElementById('rulerValue');
+    const debugVal = document.getElementById('debugValue');
 
-    // Adapter le canvas à la taille réelle
     const rect = zone.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    // Gestion unifiée Souris / Tactile pour éviter les bugs
     const getCoords = (e) => {
-        const box = canvas.getBoundingClientRect(); // Position absolue du canvas
-        let clientX, clientY;
-        
+        const box = canvas.getBoundingClientRect();
+        let cx, cy;
         if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
         } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
+            cx = e.clientX;
+            cy = e.clientY;
         }
-        
-        // On renvoie les coordonnées RELATIVES au canvas (0,0 en haut à gauche de la zone blanche)
-        return {
-            x: clientX - box.left,
-            y: clientY - box.top
-        };
+        return { x: cx - box.left, y: cy - box.top };
     };
 
     let isDrawing = false;
 
-    // Début du tracé
     const start = (e) => {
-        // Empêcher le scroll sur mobile
         if(e.type === 'touchstart') e.preventDefault(); 
-        
         isDrawing = true;
-        const coords = getCoords(e);
-        rulerStart = coords;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Nettoyer précédent
+        rulerStart = getCoords(e);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Petit point de départ
         ctx.beginPath();
         ctx.arc(rulerStart.x, rulerStart.y, 4, 0, 2 * Math.PI);
         ctx.fillStyle = "#9333ea";
         ctx.fill();
     };
 
-    // Mouvement
     const move = (e) => {
         if (!isDrawing || !rulerStart) return;
         if(e.type === 'touchmove') e.preventDefault();
 
-        const coords = getCoords(e);
-        const currentX = coords.x;
-        const currentY = coords.y;
-
-        // 1. Calcul Pythagore en pixels
-        const dx = currentX - rulerStart.x;
-        const dy = currentY - rulerStart.y;
+        const c = getCoords(e);
+        
+        // 1. Distance Pixels
+        const dx = c.x - rulerStart.x;
+        const dy = c.y - rulerStart.y;
         const distPixels = Math.sqrt(dx*dx + dy*dy);
 
-        // 2. Conversion en CM
-        const rawCM = distPixels / pixelsPerCM;
+        // 2. Conversion en Unités (Carreaux)
+        // C'est ici que la magie opère : distPixels / pixelsPerUnit
+        const rawUnits = distPixels / pixelsPerUnit;
         
-        // --- NOUVEAU CALCUL D'ARRONDI ---
-        const partieEntiere = Math.floor(rawCM);       // ex: 5.8 -> 5
-        const partieDecimale = rawCM - partieEntiere;  // ex: 5.8 -> 0.8
+        // --- LOGIQUE ARRONDI STRICT (0.85) ---
+        const partieEntiere = Math.floor(rawUnits);
+        const partieDecimale = rawUnits - partieEntiere;
+        
+        // Seuil à 0.85 (très strict, il faut presque finir le carreau)
+        const SEUIL = 0.85; 
 
-        // Si la décimale dépasse 0.7, on passe au cm supérieur
-        if (partieDecimale > 0.7) {
+        if (partieDecimale > SEUIL) {
             currentDistCM = partieEntiere + 1;
         } else {
-            currentDistCM = partieEntiere; // Sinon on reste en dessous
+            currentDistCM = partieEntiere;
         }
-        // --------------------------------
 
-        // Affichage
+        // 3. Affichage
         displayVal.innerHTML = `${currentDistCM} <span class="text-sm">cm</span>`;
+        
+        // DEBUG : Affiche la valeur exacte (ex: 1.92)
+        // Si tu fais 2 carreaux, ça DOIT afficher environ 2.00 ici
+        if(debugVal) {
+            debugVal.innerText = `Raw: ${rawUnits.toFixed(2)} | Dec: ${partieDecimale.toFixed(2)}`;
+        }
 
-        // 3. Dessin
+        // 4. Dessin
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Ligne
         ctx.beginPath();
         ctx.moveTo(rulerStart.x, rulerStart.y);
-        ctx.lineTo(currentX, currentY);
+        ctx.lineTo(c.x, c.y);
         ctx.lineWidth = 4;
         ctx.strokeStyle = "#9333ea";
         ctx.setLineDash([10, 10]);
         ctx.stroke();
 
-        // Points extrémités
         ctx.beginPath();
         ctx.arc(rulerStart.x, rulerStart.y, 5, 0, 2 * Math.PI);
-        ctx.arc(currentX, currentY, 5, 0, 2 * Math.PI);
+        ctx.arc(c.x, c.y, 5, 0, 2 * Math.PI);
         ctx.fillStyle = "#9333ea";
         ctx.fill();
-        
-        // (Optionnel) Affiche la valeur précise flottante à côté du doigt pour débugger si besoin
-        // ctx.fillText(`${rawCM.toFixed(2)}`, currentX + 10, currentY - 10);
     };
 
-    const end = () => {
-        isDrawing = false;
-    };
+    const end = () => { isDrawing = false; };
 
-    // Listeners
     zone.onmousedown = start;
     zone.onmousemove = move;
     zone.onmouseup = end;
     zone.onmouseleave = end;
-
     zone.ontouchstart = start;
     zone.ontouchmove = move;
     zone.ontouchend = end;
