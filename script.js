@@ -236,6 +236,38 @@ function fermerPopup() {
     coordEnCours = null;
 }
 
+function modifierLigne(id) {
+    // 1. On retrouve l'activité concernée
+    const ligne = activites.find(a => a.id === id);
+    
+    if (ligne) {
+        // 2. On passe en mode "Modification" (idEnCours n'est pas null)
+        idEnCours = id;
+        coordEnCours = null; // On ne touche pas aux coordonnées existantes
+        
+        // 3. On remplit l'interface
+        changerTypeSaisie(ligne.type);
+        
+        const titreEl = document.getElementById('modalTitle');
+        if(titreEl) titreEl.innerText = "Modifier l'entrée";
+
+        const inputDist = document.getElementById('distanceInput');
+        const inputNom = document.getElementById('locationNameInput');
+        
+        if(inputDist) inputDist.value = (ligne.valeurMetres * 100).toFixed(0); // On remet en cm
+        if(inputNom) inputNom.value = ligne.nom || "";
+
+        // 4. On cache l'indice GPS car on modifie une donnée existante
+        const hint = document.getElementById('gpsHint');
+        if(hint) hint.classList.add('hidden');
+
+        // 5. On ouvre la modale
+        const modalEl = document.getElementById('modal');
+        if(modalEl) modalEl.classList.remove('hidden');
+        if(inputDist) inputDist.focus();
+    }
+}
+
 function validerSaisie() {
     const inputDist = document.getElementById('distanceInput');
     const inputNom = document.getElementById('locationNameInput');
@@ -323,16 +355,14 @@ function sauvegarderEtAfficher() {
     const t3 = document.getElementById('total3'); if(t3) t3.innerText = total3.toFixed(2) + " m";
     const tg = document.getElementById('totalGeneral'); if(tg) tg.innerText = totalGeneral.toFixed(2) + " m";
 
-    // 3. WIDGET DE PROGRESSION (Réparé selon tes IDs HTML)
+    // 3. WIDGET DE PROGRESSION
     let nextTrophy = TROPHY_LIST.find(t => t.m > totalGeneral);
     let targetM = nextTrophy ? nextTrophy.m : (totalGeneral * 1.5);
     let targetName = nextTrophy ? nextTrophy.name : "L'infini";
 
-    // Pourcentage
     let percent = totalGeneral > 0 ? (totalGeneral / targetM) * 100 : 0;
     if (percent > 100) percent = 100;
 
-    // Mise à jour des éléments visuels du widget
     const progressBar = document.getElementById('progressBar');
     const funFact = document.getElementById('funFact');
     const nextMilestone = document.getElementById('nextMilestone');
@@ -343,7 +373,6 @@ function sauvegarderEtAfficher() {
         if (totalGeneral === 0) {
             funFact.innerText = "Commencez pour voir une comparaison !";
         } else {
-            // Trouve le plus grand trophée accompli
             const done = [...TROPHY_LIST].reverse().find(t => t.m <= totalGeneral);
             if (done) {
                 const count = (totalGeneral / done.m).toFixed(1);
@@ -358,7 +387,7 @@ function sauvegarderEtAfficher() {
         nextMilestone.innerText = `Objectif : ${targetName} (${(targetM - totalGeneral).toFixed(2)}m restants)`;
     }
 
-    // 4. GÉNÉRATION DE LA LISTE (Avec Date !)
+    // 4. GÉNÉRATION DE LA LISTE (Avec appel à modifierLigne)
     const liste = document.getElementById('listeActivites');
     let html = "";
     const theme = getTheme(); 
@@ -367,8 +396,9 @@ function sauvegarderEtAfficher() {
         const iconeVisuelle = act.type === 'K' ? theme.iconeK : theme.icone3;
         const stars = act.note > 0 ? "⭐".repeat(act.note) : "";
         
+        // MODIFICATION ICI : On appelle modifierLigne(id) proprement
         html += `
-            <div onclick="ouvrirPopup('${act.type}', null, '${(act.nom || '').replace(/'/g, "\\'")}'); idEnCours=${act.id}; distanceInput.value=${(act.valeurMetres*100).toFixed(0)}" 
+            <div onclick="modifierLigne(${act.id})" 
             class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden group hover:border-purple-200 transition-colors cursor-pointer mb-2">
                 
                 <div class="flex items-center gap-3 z-10 w-full">
