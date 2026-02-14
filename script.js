@@ -64,6 +64,71 @@ const TROPHY_LIST = [
     { m: 828, icon: "🏗️", name: "Burj Khalifa" }
 ];
 
+// ... après TROPHY_LIST ...
+
+// LISTE DES TROPHÉES SECRETS (Easter Eggs)
+const SECRET_LIST = [
+    { 
+        id: "Bonbon", 
+        icon: "💊", 
+        name: "L’ecstase", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 30.03 
+    },
+  { 
+        id: "Vitesse", 
+        icon: "⚡️", 
+        name: "Vitesse", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 2.99 
+    },
+  { 
+        id: "4", 
+        icon: "4️⃣", 
+        name: "3+1", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 44.44 
+    },
+    { 
+        id: "C", 
+        icon: "❄️", 
+        name: "Les bronzés", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 21.06 
+    },
+  { 
+        id: "2CB", 
+        icon: "🚀", 
+        name: "Satellité", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 10.04 
+    },
+  { 
+        id: "Ice", 
+        icon: "🧊", 
+        name: "Immigration and Customs Enforcement", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 11.02 
+    },
+  { 
+        id: "H", 
+        icon: "💉", 
+        name: "Ustre", 
+        hint: "Une erreur dans le système...",
+        // Condition : Taper 404 cm (4.04m)
+        check: (metres, nom) => metres === 18.74 
+    },
+];
+
+// Récupération des secrets déjà débloqués
+let unlockedSecrets = JSON.parse(localStorage.getItem('textile_secrets')) || [];
+
 // =============================================================
 // 1. DONNÉES & DOM
 // =============================================================
@@ -306,6 +371,18 @@ function validerSaisie() {
                     finalLng = lieuExistant.lng;
                 }
             }
+          
+          SECRET_LIST.forEach(secret => {
+            // Si pas déjà débloqué ET que la condition est remplie
+            if (!unlockedSecrets.includes(secret.id) && secret.check(metres, nomLieu)) {
+                unlockedSecrets.push(secret.id);
+                localStorage.setItem('textile_secrets', JSON.stringify(unlockedSecrets));
+                
+                // Petit effet sympa
+                alert(`🏆 SECRET DÉBLOQUÉ : ${secret.name}\n${secret.icon}`);
+                vibrer("succès"); // Si tu as gardé la fonction vibrer
+            }
+        });
 
             activites.unshift({
                 id: Date.now(),
@@ -611,6 +688,7 @@ function chargerTrophees() {
     const grid = document.getElementById('trophyGrid');
     const progressLabel = document.getElementById('trophyProgress');
     
+    // 1. Calcul des totaux standards
     let totalK = 0, total3 = 0;
     activites.forEach(a => {
         if (a.type === 'K') totalK += a.valeurMetres;
@@ -621,6 +699,7 @@ function chargerTrophees() {
     let unlockedCount = 0;
     let html = "";
 
+    // 2. BOUCLE DES TROPHÉES CLASSIQUES (inchangée)
     TROPHY_LIST.forEach((t, index) => {
         const isUnlocked = totalM >= t.m;
         if (isUnlocked) unlockedCount++;
@@ -647,8 +726,38 @@ function chargerTrophees() {
         }
     });
 
+    // 3. AJOUT DES SECRETS À LA FIN
+    if (SECRET_LIST.length > 0) {
+        // Petit séparateur visuel (optionnel)
+        html += `<div class="col-span-2 mt-4 mb-2 flex items-center justify-center"><div class="h-1 w-20 bg-slate-200 rounded-full"></div></div>`;
+
+        SECRET_LIST.forEach((secret) => {
+            const isSecretUnlocked = unlockedSecrets.includes(secret.id);
+
+            if (isSecretUnlocked) {
+                // Secret DÉCOUVERT (Style spécial "Dark/Gold")
+                html += `
+                    <div class="bg-slate-800 p-4 rounded-2xl shadow-md border border-slate-700 flex flex-col items-center justify-center gap-2 relative overflow-hidden cursor-pointer transition-transform active:scale-95" style="animation: popIn 0.3s ease-out forwards;">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-900 to-slate-900 opacity-50 pointer-events-none"></div>
+                        <span class="text-4xl relative z-10 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">${secret.icon}</span>
+                        <span class="text-xs font-bold text-white text-center relative z-10 leading-tight">${secret.name}</span>
+                        <span class="text-[10px] font-bold text-purple-200 bg-purple-900/50 px-2 py-1 rounded-full relative z-10 border border-purple-500/30">SECRET</span>
+                    </div>
+                `;
+            } else {
+                // Secret NON DÉCOUVERT (Case mystérieuse)
+                html += `
+                    <div class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 opacity-50 relative">
+                        <span class="text-3xl grayscale opacity-20">❓</span>
+                        <span class="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">Secret</span>
+                    </div>
+                `;
+            }
+        });
+    }
+
     if(grid) grid.innerHTML = html;
-    if(progressLabel) progressLabel.innerText = `${unlockedCount} / ${TROPHY_LIST.length} DÉBLOQUÉS`;
+    if(progressLabel) progressLabel.innerText = `${unlockedCount} / ${TROPHY_LIST.length} PALIERS`;
 }
 
 // =============================================================
