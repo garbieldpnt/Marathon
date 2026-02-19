@@ -531,25 +531,96 @@ function toggleBlueprint() { document.body.classList.toggle('theme-blueprint'); 
 // =============================================================
 // CARTE & RÈGLE & PARTAGE
 // =============================================================
+// =============================================================
+// CARTE (Leaflet)
+// =============================================================
+let mapInstance = null;
+let userMarker = null;
+
 function initMap() {
     if(mapInstance) return;
     mapInstance = L.map('map', {zoomControl: false}).setView([46.60, 1.88], 5);
+    
     const plan = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
     plan.addTo(mapInstance);
+    
     // Reward Niv 3+ : Satellite
-    if(getCurrentLevel() >= 3) {
-        L.control.layers({ "Plan": plan }, { "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}') }).addTo(mapInstance);
+    if(typeof getCurrentLevel === 'function' && getCurrentLevel() >= 3) {
+        L.control.layers(
+            { "Plan": plan }, 
+            { "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}') }
+        ).addTo(mapInstance);
     }
+    
     mapInstance.on('click', e => ouvrirPopup('K', e.latlng));
+    
     mapInstance.locate({watch: true, enableHighAccuracy: true});
     mapInstance.on('locationfound', e => {
         if(!userMarker) { 
             const icon = L.divIcon({className: 'user-location-dot', html: '<div class="dot"></div><div class="pulse"></div>', iconSize: [20,20]});
             userMarker = L.marker(e.latlng, {icon: icon}).addTo(mapInstance);
-        } else userMarker.setLatLng(e.latlng);
+        } else {
+            userMarker.setLatLng(e.latlng);
+        }
     });
+    
     chargerMarqueurs();
 }
+
+function chargerMarqueurs() {
+    if (!mapInstance) return;
+
+    // 1. Nettoyer les anciens marqueurs (sauf la position de l'utilisateur)
+    mapInstance.eachLayer((layer) => {
+        if (layer instanceof L.Marker && layer !== userMarker) {
+            mapInstance.removeLayer(layer);
+        }
+    });
+
+    // 2. Regrouper les activités par lieu pour éviter les doublons au même endroit
+    const lieux = {};
+    activites.forEach(a => {
+        if (a.lat && a.lng) {
+            const key = a.lat.toFixed(5) + "," + a.lng.toFixed(5);
+            if (!lieux[key]) {
+                lieux[key] = { lat: a.lat, lng: a.lng, nom: a.nom || "Lieu mystère", total: 0 };
+            }
+            lieux[key].total += a.valeurMetres;
+        }
+    });
+
+    // 3. Récupérer l'émoji du mode actuel (Party 👃 ou Bureau ✂️)
+    const theme = getTheme(); 
+    const emojiMap = theme.iconeMap;
+
+    // 4. Placer les nouveaux marqueurs sur la carte
+    Object.values(lieux).forEach(lieu => {
+        const customIcon = L.divIcon({
+            className: 'custom-map-icon pin-icon', 
+            html: `<div style="font-size: 28px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); transform: translateY(-10px);">${emojiMap}</div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 30],
+            popupAnchor: [0, -30]
+        });
+
+        const marker = L.marker([lieu.lat, lieu.lng], {icon: customIcon}).addTo(mapInstance);
+        
+        marker.bindPopup(`
+            <div class="text-center">
+                <strong class="block text-sm mb-1">${lieu.nom}</strong>
+                <span class="text-xs bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+                    Total : ${lieu.total.toFixed(2)} m
+                </span>
+                <br>
+                <button onclick="ouvrirPopup('K', {lat:${lieu.lat}, lng:${lieu.lng}}, '${lieu.nom.replace(/'/g, "\\'")}')" 
+                class="mt-2 text-[10px] bg-slate-800 text-white px-3 py-1 rounded-full font-bold shadow-md active:scale-95 transition-transform">
+                    + Ajouter ici
+                </button>
+            </div>
+        `);
+    });
+}
+
 
 function ouvrirMenuPartage() { document.getElementById('photoModal').classList.remove('hidden'); }
 // ... (Les fonctions genererImage, traiterPhoto, etc. restent identiques, je les laisse actives via le bloc précédent ou tu peux les remettre si besoin) ...
