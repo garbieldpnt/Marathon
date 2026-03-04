@@ -134,6 +134,13 @@ function basculerModeDiscret() {
     updateUIState();
     sauvegarderEtAfficher(); 
     if(mapInstance) chargerMarqueurs();
+
+    // --- NOUVEAUTÉ : Mise à jour des textes du leaderboard ---
+    // Si modeDiscretActif est vrai, on envoie 'bureau', sinon on envoie 'party'
+    const modeActuel = modeDiscretActif ? 'bureau' : 'party';
+    actualiserTextesClassement(modeActuel);
+    // ---------------------------------------------------------
+
     alert(modeDiscretActif ? "💼 Mode Bureau activé" : "🦄 Mode Party activé");
 }
 
@@ -159,20 +166,37 @@ function addXP(amount) {
 
 function changerVue(vue) {
     const lvl = getCurrentLevel();
-    // Bloquage conditionnel
+    
+    // 1. Blocage conditionnel (Sécurité Niveau)
     if (vue === 'map' && lvl < 1) return alert("🔒 Atteignez le niveau Initié (100 XP) pour la Carte !");
     if (vue === 'trophies' && lvl < 2) return alert("🔒 Atteignez le niveau Explorateur (300 XP) pour les Trophées !");
+    if (vue === 'leaderboard' && lvl < 1) return alert("🔒 Atteignez le niveau Initié (100 XP) pour le Classement !");
 
-    ['view-marathon', 'view-map', 'view-trophies'].forEach(v => document.getElementById(v).classList.add('hidden'));
-    document.getElementById('view-' + vue).classList.remove('hidden');
+    // 2. Masquer toutes les vues (Ajout de view-leaderboard dans la liste)
+    ['view-marathon', 'view-map', 'view-trophies', 'view-leaderboard'].forEach(v => {
+        const el = document.getElementById(v);
+        if (el) el.classList.add('hidden');
+    });
 
+    // 3. Afficher la vue demandée
+    const targetView = document.getElementById('view-' + vue);
+    if (targetView) targetView.classList.remove('hidden');
+
+    // 4. Gestion du curseur (Translation par tranche de 100%)
     const cursor = document.getElementById('nav-cursor');
-    if (vue === 'marathon') cursor.style.transform = 'translateX(0%)';
-    if (vue === 'map') { cursor.style.transform = 'translateX(100%)'; initMap(); }
-    if (vue === 'trophies') { cursor.style.transform = 'translateX(200%)'; chargerTrophees(); }
+    if (cursor) {
+        if (vue === 'marathon') cursor.style.transform = 'translateX(0%)';
+        if (vue === 'map') { cursor.style.transform = 'translateX(100%)'; initMap(); }
+        if (vue === 'trophies') { cursor.style.transform = 'translateX(200%)'; chargerTrophees(); }
+        if (vue === 'leaderboard') { cursor.style.transform = 'translateX(300%)'; afficherLeaderboard(); }
+    }
     
-    document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-white', 'text-slate-400'));
-    document.getElementById('btn-nav-' + vue).classList.replace('text-slate-400', 'text-white');
+    // 5. Gestion des couleurs des boutons (Passage de slate-400 à white)
+    document.querySelectorAll('nav button').forEach(b => {
+        b.classList.replace('text-white', 'text-slate-400');
+    });
+    const activeBtn = document.getElementById('btn-nav-' + vue);
+    if (activeBtn) activeBtn.classList.replace('text-slate-400', 'text-white');
 }
 
 // --- SAISIE ---
@@ -533,39 +557,61 @@ function toggleBlueprint() { document.body.classList.toggle('theme-blueprint'); 
 // =============================================================
 // CARTE & RÈGLE & PARTAGE
 // =============================================================
-// =============================================================
-// CARTE (Leaflet)
-// =============================================================
+
 let mapInstance = null;
 let userMarker = null;
+let aDejaZoome = false;
 
 function initMap() {
-    if(mapInstance) return;
-    mapInstance = L.map('map', {zoomControl: false}).setView([46.60, 1.88], 5);
-    
+    if (mapInstance) return;
+
+    // 1. Initialisation de la carte
+    mapInstance = L.map('map', { zoomControl: false }).setView([46.60, 1.88], 5);
+
+    // 2. Couche de base (Voyager)
     const plan = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png');
     plan.addTo(mapInstance);
-    
-    // Reward Niv 3+ : Satellite
-    if(typeof getCurrentLevel === 'function' && getCurrentLevel() >= 3) {
-        L.control.layers(
-            { "Plan": plan }, 
-            { "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}') }
-        ).addTo(mapInstance);
+
+    // 3. Option Satellite (Niveau 3+)
+    if (typeof getCurrentLevel === 'function' && getCurrentLevel() >= 3) {
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+        L.control.layers({ "Plan": plan }, { "Satellite": satellite }).addTo(mapInstance);
     }
-    
-    mapInstance.on('click', e => ouvrirPopup('K', e.latlng));
-    
-    mapInstance.locate({watch: true, enableHighAccuracy: true});
+
+    // 4. Clic pour ajouter un marqueur
+    mapInstance.on('click', e => {
+        if (typeof ouvrirPopup === 'function') {
+            ouvrirPopup('K', e.latlng);
+        }
+    });
+
+    // 5. Géolocalisation
+    mapInstance.locate({ watch: true, enableHighAccuracy: true });
+
     mapInstance.on('locationfound', e => {
-        if(!userMarker) { 
-            const icon = L.divIcon({className: 'user-location-dot', html: '<div class="dot"></div><div class="pulse"></div>', iconSize: [20,20]});
-            userMarker = L.marker(e.latlng, {icon: icon}).addTo(mapInstance);
+        // Mise à jour du point bleu
+        if (!userMarker) {
+            const icon = L.divIcon({
+                className: 'user-location-dot',
+                html: '<div class="dot"></div><div class="pulse"></div>',
+                iconSize: [20, 20]
+            });
+            userMarker = L.marker(e.latlng, { icon: icon }).addTo(mapInstance);
         } else {
             userMarker.setLatLng(e.latlng);
         }
+
+        // Zoom automatique une seule fois
+        if (!aDejaZoome) {
+            mapInstance.setView(e.latlng, 16);
+            aDejaZoome = true;
+        }
     });
-    
+
+    mapInstance.on('locationerror', () => {
+        console.log("Géolocalisation refusée.");
+    });
+ // <--- Vérifie bien que cette accolade est présente !
     chargerMarqueurs();
 }
 
@@ -1023,6 +1069,174 @@ function afficherEcranValidation(blob) {
     overlay.appendChild(btnShare); 
     overlay.appendChild(btnClose); 
     document.body.appendChild(overlay);
+}
+
+// =============================================================
+// LEADERBOARD SUPABASE (Multijoueur) - SÉCURISÉ
+// =============================================================
+
+// Tes identifiants (À REMPLACER par les tiens)
+const supabaseUrl = 'https://fjgcayrqfociipmhpqza.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZ2NheXJxZm9jaWlwbWhwcXphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MTI4MTIsImV4cCI6MjA4ODE4ODgxMn0.CGOJEjbW2f-K27X0ZrgupmY3mqHcScScdZZ9PYQAGfM';
+
+// 1. Connexion "Paresseuse" (Anti-crash)
+// 1. Connexion "Paresseuse" (Anti-crash CodePen)
+function getSupabase() {
+    if (typeof window.supabase === 'undefined') {
+        alert("La base de données charge encore, réessaie dans une seconde !");
+        return null;
+    }
+    
+    if (!window.maBaseDeDonnees) {
+        // NOUVEAU : On ajoute une option pour désactiver la recherche d'authentification
+        window.maBaseDeDonnees = window.supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false // 👈 C'est cette ligne qui empêche le crash sur CodePen !
+            }
+        });
+    }
+    return window.maBaseDeDonnees;
+}
+
+// 2. Fonction pour envoyer/mettre à jour son score
+async function publierScore() {
+    const db = getSupabase();
+    if (!db) return; // Arrêt sécurisé si pas chargé
+
+    const totalGeneralEl = document.getElementById('totalGeneral');
+    if (!totalGeneralEl) return alert("Erreur : Impossible de lire le total.");
+    
+    const total = parseFloat(totalGeneralEl.innerText.replace(' m', ''));
+
+    if (total <= 0) {
+        return alert("Tu dois avoir un score supérieur à 0 pour entrer dans le classement !");
+    }
+
+    const pseudo = prompt("🏆 Entre ton pseudo pour le classement mondial :");
+    if (!pseudo || pseudo.trim() === "") return;
+
+    // Envoi à la base de données
+    const { error } = await db
+        .from('Leaderboard')
+        .upsert(
+            { pseudo: pseudo.trim(), score_metres: total }, 
+            { onConflict: 'pseudo' }
+        );
+
+    if (error) {
+        console.error("Erreur Supabase :", error);
+        alert("Oups, impossible de publier le score.");
+    } else {
+        alert(`Félicitations ${pseudo} ! Ton score de ${total}m est en ligne.`);
+        afficherLeaderboard(); 
+    }
+}
+
+// 3. Fonction pour récupérer et afficher le Top 10
+async function afficherLeaderboard() {
+    const db = getSupabase();
+    if (!db) return;
+
+    // 1. Récupération du Top 10
+    const { data, error } = await db
+        .from('Leaderboard')
+        .select('pseudo, score_metres')
+        .order('score_metres', { ascending: false })
+        .limit(10);
+
+    if (error) return console.error("Erreur :", error);
+
+    const podiumBox = document.getElementById('podium-container');
+    const listBox = document.getElementById('leaderboard-list');
+    
+    podiumBox.innerHTML = '';
+    listBox.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        listBox.innerHTML = "<p class='text-center text-slate-500 py-10 uppercase font-bold text-xs'>Aucun score pour le moment...</p>";
+        return;
+    }
+
+// --- LOGIQUE DU PODIUM (TOP 3) ---
+    const podiumOrder = [1, 0, 2]; 
+    
+    podiumOrder.forEach((posIndex) => {
+        const joueur = data[posIndex];
+        if (!joueur) {
+            podiumBox.innerHTML += `<div class="flex-1 opacity-0"></div>`;
+            return;
+        }
+
+        const isFirst = posIndex === 0;
+        const color = isFirst ? 'bg-yellow-500' : (posIndex === 1 ? 'bg-slate-300' : 'bg-orange-500');
+        const height = isFirst ? 'h-32' : (posIndex === 1 ? 'h-24' : 'h-20');
+        const medal = isFirst ? '🥇' : (posIndex === 1 ? '🥈' : '🥉');
+
+        podiumBox.innerHTML += `
+            <div class="flex flex-col items-center flex-1">
+                <span class="text-slate-800 font-black text-[10px] mb-2 truncate w-20 text-center uppercase tracking-tighter">
+                    ${joueur.pseudo}
+                </span>
+                
+                <div class="${height} ${color} w-full rounded-t-2xl relative flex flex-col items-center justify-start pt-3 shadow-lg">
+                    <span class="text-2xl mb-1">${medal}</span>
+                    <div class="flex flex-col items-center leading-none">
+                        <span class="text-slate-900 font-black text-sm">${joueur.score_metres.toFixed(1)}</span>
+                        <span class="text-slate-900/60 font-bold text-[8px] uppercase">Mètres</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    // --- LOGIQUE DE LA LISTE (TOP 4-10) ---
+    if (data.length > 3) {
+        data.slice(3).forEach((joueur, index) => {
+            listBox.innerHTML += `
+                <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <span class="text-slate-400 font-bold w-6 text-sm">#${index + 4}</span>
+                        <span class="text-slate-800 font-bold uppercase tracking-tight text-sm">${joueur.pseudo}</span>
+                    </div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-[#bc13fe] font-black">${joueur.score_metres.toFixed(2)}</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase">m</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+
+}
+
+function actualiserTextesClassement(modeActif) {
+    const titre = document.getElementById('lb-titre');
+    const sousTitre = document.getElementById('lb-sous-titre');
+    const cta = document.getElementById('lb-cta');
+    const btn = document.getElementById('lb-btn');
+
+    // Sécurité au cas où la page n'est pas encore chargée
+    if (!titre) return; 
+
+    if (modeActif === 'party') {
+        titre.innerText = "Marathon de la DROGUE";
+        sousTitre.innerText = "Le classement des tox de Marseille";
+        cta.innerText = "Prêt à casser le score ?";
+        btn.innerText = "Lâcher mon score 🚀";
+        
+        // Optionnel : tu peux même changer la couleur du bouton ici si tu veux
+        btn.classList.replace('bg-blue-600', 'bg-[#bc13fe]'); // Exemple
+    } else { 
+        // Mode Bureau
+        titre.innerText = "Performance Sourcing";
+        sousTitre.innerText = "Classement professionnel des saisies";
+        cta.innerText = "Enregistrez vos metrics";
+        btn.innerText = "Publier mes résultats 📊";
+        
+        // Optionnel : couleur plus sobre pour le bureau
+        btn.classList.replace('bg-[#bc13fe]', 'bg-blue-600'); // Exemple
+    }
 }
 // INIT
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
