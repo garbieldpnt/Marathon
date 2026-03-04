@@ -127,6 +127,7 @@
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slideUp">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2">📊 Analyse Données</h3>
             <div class="space-y-4 text-sm text-slate-600">
+              <div class="flex justify-between border-b pb-2"><span>Total :</span> <b id="insightTotal">0</b></div>
                 <div class="flex justify-between border-b pb-2"><span>Nombre de fiches :</span> <b id="statCount">0</b></div>
                 <div class="flex justify-between border-b pb-2"><span>Moyenne / entrée :</span> <b id="statAvg">0.00 m</b></div>
                 <div class="flex justify-between border-b pb-2"><span>Dominante :</span> <b id="statDom">Aucune</b></div>
@@ -182,7 +183,29 @@
         </div>
     </div>
 
-    <div id="shareCardContainer" class="fixed -z-50 top-0 left-0 w-[400px] h-[400px] bg-slate-900 p-6 hidden"></div>
+    <div id="shareCardContainer" style="position: absolute; left: -9999px; top: -9999px; width: 400px; height: 400px; background: #bc13fe; overflow: hidden; padding: 25px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif;">
+        <div style="position: absolute; top: 25px; left: 25px; z-index: 4; display: flex; flex-direction: column;">
+            <p id="shareTotalGeneral" style="font-size: 60px; font-weight: 800; color: white; line-height: 1; margin: 0;">0.00</p>
+            <p style="font-size: 18px; font-weight: 800; color: white; opacity: 0.9; margin: 0;">METERS</p>
+        </div>
+        <div id="photoContainer" style="position: absolute; top: -40px; right: -40px; width: 288px; height: 288px; z-index: 2; display: none;">
+            <img id="userPhoto" src="" style="width: 100%; height: 100%; object-fit: cover; mask-image: linear-gradient(to bottom left, black 60%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom left, black 60%, transparent 100%);">
+        </div>
+        <h2 id="shareFunFactSolid" style="position: absolute; bottom: 150px; left: 25px; z-index: 1; font-size: 38px; font-weight: 800; color: white; margin: 0; text-transform: uppercase; line-height: 0.95;"></h2>
+        <h2 id="shareFunFactHollow" style="position: absolute; bottom: 150px; left: 25px; z-index: 3; font-size: 38px; font-weight: 800; color: transparent; -webkit-text-stroke: 2px white; margin: 0; text-transform: uppercase; line-height: 0.95;"></h2>
+        <div style="position: absolute; bottom: 115px; left: 25px; right: 25px; z-index: 4; border-top: 2px solid white;"></div>
+        <div style="position: absolute; bottom: 50px; left: 25px; right: 25px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <p style="font-size: 30px; margin: 0;">🦄</p>
+                <p id="shareTotalK" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+            </div>
+            <div>
+                <p style="font-size: 30px; margin: 0;">3️⃣</p>
+                <p id="shareTotal3" style="font-size: 16px; font-weight: 800; color: white; margin: 0;"></p>
+            </div>
+        </div>
+        <p style="position: absolute; bottom: 20px; left: 25px; z-index: 4; font-size: 10px; font-weight: 800; color: black; opacity: 0.8; margin: 0; text-transform: uppercase;">Made by garbiel</p>
+    </div>
     <input type="file" id="imageInputTrigger" accept="image/*" onchange="traiterLaPhoto(this)" style="position: absolute; opacity: 0; width: 1px; height: 1px; top: 0; left: 0; z-index: -1;">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
