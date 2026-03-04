@@ -1,3 +1,4 @@
+
 // =============================================================
 // SCRIPT.JS - VERSION COMPLETE (HYBRID + GAMIFICATION + SECRETS)
 // =============================================================
@@ -522,6 +523,7 @@ function showInsights() {
     let k=0, t=0; activites.forEach(a => a.type === 'K' ? k++ : t++);
     let totalM = 0; activites.forEach(a => totalM += a.valeurMetres);
     document.getElementById('statCount').innerText = activites.length;
+  document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
     document.getElementById('statAvg').innerText = (activites.length ? (totalM/activites.length).toFixed(2) : 0) + " m";
     document.getElementById('statDom').innerText = k > t ? "Type 1" : "Type 2";
     document.getElementById('insightsModal').classList.remove('hidden');
@@ -752,6 +754,275 @@ function resetData() {
         actualiserDonneesEnMemoire();
         alert("🧹 Application remise à zéro !");
     }
+}
+// =============================================================
+// PARTAGE & EXPORT IMAGE (Visuel Réseau avec Photo & PDF Pro)
+// =============================================================
+
+function ouvrirMenuPartage() {
+    const modal = document.getElementById('photoModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function fermerMenuPartage() {
+    const modal = document.getElementById('photoModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function genererImage(mode) {
+    fermerMenuPartage(); 
+
+    if (mode === 'pro') {
+        // ==========================================
+        // --- MODE PDF PRO (TOUTES LES ENTRÉES) ---
+        // ==========================================
+        if (typeof window.html2pdf === 'undefined') {
+            const script = document.createElement('script');
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+            script.onload = () => genererImage('pro'); 
+            document.head.appendChild(script);
+            return;
+        }
+
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.padding = '20px';
+        pdfContainer.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+        pdfContainer.style.color = '#1e293b';
+
+        const theme = getTheme();
+        let tableRows = activites.map(a => `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 5px; font-size: 12px;">${a.date}</td>
+                <td style="padding: 10px 5px; font-size: 16px; text-align: center;">${a.type === 'K' ? theme.iconeK : theme.icone3}</td>
+                <td style="padding: 10px 5px; font-size: 12px;">${a.nom || '-'}</td>
+                <td style="padding: 10px 5px; font-size: 12px; text-align: right;">${(a.valeurMetres * 100).toFixed(0)} cm</td>
+            </tr>
+        `).join('');
+
+        pdfContainer.innerHTML = `
+            <div style="text-align: center; border-bottom: 2px solid #0f172a; margin-bottom: 20px; padding-bottom: 15px;">
+                <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px;">Fiche de Sourcing Globale</h1>
+                <p style="margin: 5px 0 0 0; color: #64748b; font-size: 12px;">Généré le ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <div><strong>Total Global :</strong> <span style="color: #bc13fe; font-size: 16px;">${document.getElementById('totalGeneral') ? document.getElementById('totalGeneral').innerText : '0 m'}</span></div>
+                <div><strong>Nombre d'entrées :</strong> ${activites.length}</div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background-color: #0f172a; color: white;">
+                        <th style="padding: 10px 5px; font-size: 12px;">Date</th>
+                        <th style="padding: 10px 5px; font-size: 12px;">Type</th>
+                        <th style="padding: 10px 5px; font-size: 12px;">Lieu / Projet</th>
+                        <th style="padding: 10px 5px; font-size: 12px; text-align: right;">Longueur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        `;
+
+        const opt = {
+            margin:       15,
+            filename:     'Sourcing_Complet.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(pdfContainer).save();
+
+    } else {
+        // ==========================================
+        // --- MODE FUN / RÉSEAU (AVEC PHOTO) ---
+        // ==========================================
+        
+        // 1. Demander si on veut une photo
+        if (confirm("📸 Veux-tu ajouter une photo de fond pour ton visuel ?")) {
+            // Création d'un champ d'upload invisible
+            const inputPhoto = document.createElement('input');
+            inputPhoto.type = 'file';
+            inputPhoto.accept = 'image/*'; // N'accepte que les images
+            
+            inputPhoto.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        // On lance la capture avec la photo
+                        lancerCaptureRapport(event.target.result);
+                    };
+                    reader.readAsDataURL(file); // Convertit l'image pour html2canvas
+                } else {
+                    lancerCaptureRapport(null); // Annulation -> pas de photo
+                }
+            };
+            inputPhoto.click(); // Ouvre la galerie
+        } else {
+            // On lance directement sans photo
+            lancerCaptureRapport(null);
+        }
+    }
+}
+
+// Fonction interne qui gère le clonage une fois la photo choisie (ou non)
+function lancerCaptureRapport(photoDataUrl) {
+    if (typeof window.html2canvas === 'undefined') {
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        script.onload = () => lancerCaptureRapport(photoDataUrl);
+        document.head.appendChild(script);
+        return;
+    }
+
+    const oContainer = document.getElementById('shareCardContainer');
+    if (!oContainer) return alert("❌ Erreur HTML : 'shareCardContainer' introuvable.");
+
+    // Nettoyage des clones précédents
+    document.querySelectorAll('[id^="clone_"]').forEach(el => el.remove());
+
+    try {
+        // 1. Injection de la Photo si elle existe
+        const photoCont = document.getElementById('photoContainer');
+        const userPhoto = document.getElementById('userPhoto');
+        if (photoCont && userPhoto) {
+            if (photoDataUrl) {
+                userPhoto.src = photoDataUrl;
+                photoCont.style.display = 'block'; // Affiche le conteneur photo
+            } else {
+                userPhoto.src = '';
+                photoCont.style.display = 'none'; // Cache si pas de photo
+            }
+        }
+
+        // 2. Peuplement des textes
+        const tg = document.getElementById('totalGeneral');
+        const stg = document.getElementById('shareTotalGeneral');
+        if (stg && tg) stg.innerText = tg.innerText.replace(' m', '');
+
+        const tk = document.getElementById('totalK');
+        const stk = document.getElementById('shareTotalK');
+        if (stk && tk) stk.innerText = tk.innerText;
+
+        const t3 = document.getElementById('total3');
+        const st3 = document.getElementById('shareTotal3');
+        if (st3 && t3) st3.innerText = t3.innerText;
+
+        let texteFinal = "MON SUIVI";
+        const ff = document.getElementById('funFact');
+        if (ff && ff.innerText) {
+            let cleanFact = ff.innerText
+                .replace("C'est environ ", "")
+                .replace("C'est exactement la taille de ", "")
+                .replace(/\s*\(.*?\)/g, ""); 
+            texteFinal = cleanFact.trim().toUpperCase() || "MON SUIVI";
+        }
+
+        const s = document.getElementById('shareFunFactSolid');
+        if (s) s.innerText = texteFinal;
+        
+        const h = document.getElementById('shareFunFactHollow');
+        if (h) h.innerText = texteFinal;
+        
+    } catch (err) {
+        console.error(err);
+        return alert("❌ Erreur de peuplement HTML. Vérifiez vos IDs.");
+    }
+
+    // 3. Clonage et Capture
+    const clone = oContainer.cloneNode(true);
+    const uid = "clone_" + Date.now();
+    clone.id = uid;
+    Object.assign(clone.style, {
+        position:'fixed', top:'0', left:'0', width:'400px', height:'400px', 
+        zIndex:'-9999', display:'block', visibility:'visible'
+    });
+    document.body.appendChild(clone);
+
+    // Petit délai pour laisser l'image (photo) charger dans le DOM
+    setTimeout(() => {
+        const target = document.getElementById(uid);
+        if(!target) return;
+        
+        html2canvas(target, {
+            backgroundColor: "#bc13fe", 
+            scale: 2, // HD
+            useCORS: true, 
+            logging: false
+        }).then(cv => {
+            target.remove(); 
+            cv.toBlob(b => { 
+                if(!b) return alert("Erreur lors de la création de l'image."); 
+                afficherEcranValidation(b); 
+            });
+        }).catch(e => { 
+            if(document.getElementById(uid)) document.getElementById(uid).remove(); 
+            alert("Erreur génération réseau."); 
+        });
+    }, 500); // 500ms c'est plus sûr pour laisser la photo s'afficher avant de "prendre la capture"
+}
+
+// 3. Interface de Partage Final (Natif iOS/Android)
+function afficherEcranValidation(blob) {
+    const url = URL.createObjectURL(blob);
+    const file = new File([blob], 'wrapped.png', { type: 'image/png' });
+    
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', backgroundColor: 'rgba(0,0,0,0.95)', 
+        zIndex: '10000', display: 'flex', flexDirection: 'column', 
+        alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '20px'
+    });
+    
+    const img = document.createElement('img'); 
+    img.src = url;
+    Object.assign(img.style, {
+        width: '100%', maxWidth: '350px', borderRadius: '15px', 
+        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+    });
+    
+    const btnShare = document.createElement('button'); 
+    btnShare.innerHTML = "Partager 🚀";
+    Object.assign(btnShare.style, {
+        padding: '15px 30px', borderRadius: '50px', border: 'none', 
+        backgroundColor: '#bc13fe', color: 'white', fontSize: '18px', 
+        fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: '350px'
+    });
+    
+    const btnClose = document.createElement('button'); 
+    btnClose.innerHTML = "Fermer";
+    Object.assign(btnClose.style, {
+        background: 'transparent', border: 'none', color: '#888', 
+        marginTop: '10px', textDecoration: 'underline', fontSize: '16px'
+    });
+
+    btnShare.onclick = () => {
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ 
+                files: [file], 
+                title: 'Mon Sourcing', 
+                text: 'Regarde mon avancement !' 
+            }).then(() => {
+                document.body.removeChild(overlay);
+                URL.revokeObjectURL(url);
+            }).catch(e => console.log(e));
+        } else { 
+            alert("Appuie longuement sur l'image (ou clic droit) pour l'enregistrer dans ton téléphone !"); 
+        }
+    };
+    
+    btnClose.onclick = () => {
+        document.body.removeChild(overlay);
+        URL.revokeObjectURL(url);
+    };
+    
+    overlay.appendChild(img); 
+    overlay.appendChild(btnShare); 
+    overlay.appendChild(btnClose); 
+    document.body.appendChild(overlay);
 }
 // INIT
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
