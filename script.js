@@ -550,6 +550,7 @@ function showInsights() {
   document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
     document.getElementById('statAvg').innerText = (activites.length ? (totalM/activites.length).toFixed(2) : 0) + " m";
     document.getElementById('statDom').innerText = k > t ? "Type 1" : "Type 2";
+    document.getElementById('statPoids').innerText = ((totalM * 100) / 120).toFixed(1) + " g";
     document.getElementById('insightsModal').classList.remove('hidden');
 }
 function toggleBlueprint() { document.body.classList.toggle('theme-blueprint'); }
