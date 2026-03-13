@@ -480,7 +480,7 @@ function sauvegarderEtAfficher() {
                             <p class="font-bold text-slate-700 text-sm">${(a.valeurMetres * 100).toFixed(0)} <span class="text-[10px] text-slate-400">CM</span></p>
                             <p class="text-[10px] text-slate-300 font-mono shrink-0">${a.date || ''}</p>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">${a.nom || 'Sans nom'}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">${a.nom || 'Chez les fous peut-être'}</p>
                     </div>
                 </div>
             </div>`;
@@ -547,12 +547,23 @@ function showInsights() {
     let k=0, t=0; activites.forEach(a => a.type === 'K' ? k++ : t++);
     let totalM = 0; activites.forEach(a => totalM += a.valeurMetres);
     document.getElementById('statCount').innerText = activites.length;
-  document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
+    document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
     document.getElementById('statAvg').innerText = (activites.length ? (totalM/activites.length).toFixed(2) : 0) + " m";
     document.getElementById('statDom').innerText = k > t ? "Type 1" : "Type 2";
-    document.getElementById('statPoids').innerText = ((totalM * 100) / 120).toFixed(1) + " g";
+    // 1. Calcul des valeurs numériques
+const grammes = (totalM * 100) / 120;
+const prixTotal = grammes * 30;
+
+// 2. Mise à jour directe du texte dans ton HTML
+document.getElementById('statPoids').innerText = grammes.toFixed(1) + " g";
+document.getElementById('statPrix').innerText = prixTotal.toFixed(2) + " €";
+    // On récupère le total (ex: 12 mètres), on multiplie par 100 et on divise par 120
     document.getElementById('insightsModal').classList.remove('hidden');
 }
+
+
+// Appelle cette fonction là où tu affiches ton score total
+// Exemple : calculerPoidsTissu(monTotalMetres);
 function toggleBlueprint() { document.body.classList.toggle('theme-blueprint'); }
 
 // =============================================================
@@ -1238,6 +1249,63 @@ function actualiserTextesClassement(modeActif) {
         // Optionnel : couleur plus sobre pour le bureau
         btn.classList.replace('bg-[#bc13fe]', 'bg-blue-600'); // Exemple
     }
+}
+function afficherTopSpots() {
+    let cumulsParLieu = {};
+
+    // 1. On s'assure d'utiliser le bon tableau. 
+    // (Si ton code utilise 'sport_data' au lieu de 'activites', remplace le mot ci-dessous)
+    let donnees = typeof activites !== 'undefined' ? activites : []; 
+    if (donnees.length === 0) return; // Si c'est vide, on s'arrête
+
+    // 2. On parcourt tes saisies avec LES BONS MOTS
+    donnees.forEach(saisie => {
+        // Dans ta sauvegarde, le lieu s'appelle "nom". Si c'est vide (""), on met "Spot Inconnu"
+        let nomLieu = saisie.nom || "Spot Inconnu";
+        
+        // Dans ta sauvegarde, la distance s'appelle "valeurMetres" !
+        let distance = parseFloat(saisie.valeurMetres) || 0;
+
+        // On additionne dans la bonne enveloppe
+        if (cumulsParLieu[nomLieu]) {
+            cumulsParLieu[nomLieu] += distance;
+        } else {
+            cumulsParLieu[nomLieu] = distance;
+        }
+    });
+
+    // 3. On transforme en liste
+    let tableauLieux = [];
+    for (let lieu in cumulsParLieu) {
+        if (cumulsParLieu[lieu] > 0) {
+            tableauLieux.push({
+                nom: lieu,
+                totalMetres: cumulsParLieu[lieu]
+            });
+        }
+    }
+
+    // 4. On trie du plus grand au plus petit
+    tableauLieux.sort((a, b) => b.totalMetres - a.totalMetres);
+
+    // 5. On affiche le résultat
+    const conteneurListe = document.getElementById('liste-top-lieux');
+    if (!conteneurListe) return; 
+
+    conteneurListe.innerHTML = ''; 
+
+    tableauLieux.forEach(lieu => {
+        conteneurListe.innerHTML += `
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <span class="text-slate-600 text-[15px]">${lieu.nom} :</span>
+                <span class="text-slate-900 font-bold text-[15px]">${lieu.totalMetres.toFixed(2)} m</span>
+            </div>
+        `;
+    });
+    
+
+    // 6. On ouvre la fenêtre
+    document.getElementById('modal-top-lieux').classList.remove('hidden');
 }
 // INIT
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
