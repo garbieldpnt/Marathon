@@ -591,9 +591,22 @@ function initMap() {
     }
 
     // 4. Clic pour ajouter un marqueur
+    
     mapInstance.on('click', e => {
-        if (typeof ouvrirPopup === 'function') {
-            ouvrirPopup('K', e.latlng);
+        // --- SI ON EST EN MODE STICKERS ---
+        if (modeMapActuel === 'stickers') {
+            // On sauvegarde les coordonnées de l'endroit où tu as cliqué
+            coordonneesStickerTemp = e.latlng;
+            // On ouvre la petite fenêtre pour taper le nom du sticker
+            document.getElementById('modal-sticker').classList.remove('hidden');
+            document.getElementById('input-sticker-nom').focus(); 
+        } 
+        // --- SINON, ON EST EN MODE NORMAL (TISSU) ---
+        else {
+            // Ton code d'origine intact !
+            if (typeof ouvrirPopup === 'function') {
+                ouvrirPopup('K', e.latlng);
+            }
         }
     });
 
@@ -1250,62 +1263,217 @@ function actualiserTextesClassement(modeActif) {
         btn.classList.replace('bg-[#bc13fe]', 'bg-blue-600'); // Exemple
     }
 }
+
 function afficherTopSpots() {
+    console.log("👉 Bouton cliqué ! Démarrage de l'analyse...");
+
     let cumulsParLieu = {};
-
-    // 1. On s'assure d'utiliser le bon tableau. 
-    // (Si ton code utilise 'sport_data' au lieu de 'activites', remplace le mot ci-dessous)
     let donnees = typeof activites !== 'undefined' ? activites : []; 
-    if (donnees.length === 0) return; // Si c'est vide, on s'arrête
-
-    // 2. On parcourt tes saisies avec LES BONS MOTS
+    
+    // 1. On parcourt les données
     donnees.forEach(saisie => {
-        // Dans ta sauvegarde, le lieu s'appelle "nom". Si c'est vide (""), on met "Spot Inconnu"
         let nomLieu = saisie.nom || "Spot Inconnu";
-        
-        // Dans ta sauvegarde, la distance s'appelle "valeurMetres" !
         let distance = parseFloat(saisie.valeurMetres) || 0;
 
-        // On additionne dans la bonne enveloppe
         if (cumulsParLieu[nomLieu]) {
-            cumulsParLieu[nomLieu] += distance;
+            cumulsParLieu[nomLieu].totalMetres += distance;
         } else {
-            cumulsParLieu[nomLieu] = distance;
+            cumulsParLieu[nomLieu] = {
+                totalMetres: distance,
+                lat: saisie.lat,
+                lng: saisie.lng
+            };
         }
     });
 
-    // 3. On transforme en liste
+    // 2. On transforme en tableau
     let tableauLieux = [];
     for (let lieu in cumulsParLieu) {
-        if (cumulsParLieu[lieu] > 0) {
+        if (cumulsParLieu[lieu].totalMetres > 0) {
             tableauLieux.push({
                 nom: lieu,
-                totalMetres: cumulsParLieu[lieu]
+                totalMetres: cumulsParLieu[lieu].totalMetres,
+                lat: cumulsParLieu[lieu].lat,
+                lng: cumulsParLieu[lieu].lng
             });
         }
     }
 
-    // 4. On trie du plus grand au plus petit
+    // 3. On trie
     tableauLieux.sort((a, b) => b.totalMetres - a.totalMetres);
 
-    // 5. On affiche le résultat
+    // 4. On prépare l'affichage
     const conteneurListe = document.getElementById('liste-top-lieux');
-    if (!conteneurListe) return; 
+    if (!conteneurListe) {
+        console.error("❌ Erreur : Impossible de trouver 'liste-top-lieux' dans le HTML.");
+        return; 
+    }
 
     conteneurListe.innerHTML = ''; 
 
-    tableauLieux.forEach(lieu => {
-        conteneurListe.innerHTML += `
-            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
-                <span class="text-slate-600 text-[15px]">${lieu.nom} :</span>
-                <span class="text-slate-900 font-bold text-[15px]">${lieu.totalMetres.toFixed(2)} m</span>
-            </div>
-        `;
-    });
-    
+    // Si la liste est vide, on affiche quand même la fenêtre avec un petit message !
+    if (tableauLieux.length === 0) {
+        console.log("ℹ️ Aucun lieu trouvé, affichage du message vide.");
+        conteneurListe.innerHTML = '<p class="text-slate-500 text-center py-4 text-[15px]">Aucun lieu enregistré pour le moment.</p>';
+    } else {
+        console.log("✅ Création de la liste cliquable...");
+        tableauLieux.forEach(lieu => {
+            conteneurListe.innerHTML += `
+                <button onclick="centrerSurLieu(${lieu.lat}, ${lieu.lng})" class="w-full flex justify-between items-center border-b border-slate-200 pb-3 mb-3 text-left hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer">
+                    <span class="text-slate-600 text-[15px] pointer-events-none">${lieu.nom} :</span>
+                    <span class="text-slate-900 font-bold text-[15px] pointer-events-none">${lieu.totalMetres.toFixed(2)} m</span>
+                </button>
+            `;
+        });
+    }
 
-    // 6. On ouvre la fenêtre
-    document.getElementById('modal-top-lieux').classList.remove('hidden');
+    // 5. On ouvre la fenêtre (avec une sécurité)
+    if (typeof ouvrirModalTopSpots === 'function') {
+        ouvrirModalTopSpots();
+    } else {
+        console.error("❌ Erreur : La fonction ouvrirModalTopSpots() n'existe pas !");
+        // Solution de secours : on force l'ouverture sans animation
+        document.getElementById('modal-top-lieux').classList.remove('hidden');
+    }
+}
+
+function centrerSurLieu(lat, lng) {
+    if (!lat || !lng) return;
+
+    // 1. On ferme la fenêtre
+    if (typeof fermerModalTopSpots === 'function') {
+        fermerModalTopSpots();
+    } else {
+        document.getElementById('modal-top-lieux').classList.add('hidden');
+    }
+
+    // 2. On trouve ta carte
+    let laBonneCarte = null;
+    if (typeof mapInstance !== 'undefined') laBonneCarte = mapInstance;
+    else if (typeof map !== 'undefined') laBonneCarte = map;
+    else if (typeof maCarte !== 'undefined') laBonneCarte = maCarte;
+
+    if (laBonneCarte) {
+        // 3. On fait voler la caméra vers le lieu
+        laBonneCarte.flyTo([lat, lng], 17, {
+            animate: true,
+            duration: 1.5
+        });
+
+        // 4. NOUVEAU : On attend que le vol soit terminé ('moveend')
+        laBonneCarte.once('moveend', function() {
+            
+            // On fouille parmi tous les éléments dessinés sur la carte
+            laBonneCarte.eachLayer(function(calque) {
+                
+                // Si l'élément est un marqueur (il possède des coordonnées)
+                if (calque.getLatLng) {
+                    const position = calque.getLatLng();
+                    
+                    // On vérifie si les coordonnées correspondent (avec une micro-marge d'erreur pour les arrondis)
+                    if (Math.abs(position.lat - lat) < 0.0001 && Math.abs(position.lng - lng) < 0.0001) {
+                        
+                        // Si on a trouvé le bon marqueur, on ouvre sa bulle !
+                        if (calque.openPopup) {
+                            calque.openPopup();
+                        }
+                    }
+                }
+            });
+        });
+    }
+}
+
+// --- VARIABLES STICKERS ---
+let modeMapActuel = 'sourcing'; // Peut être 'sourcing' ou 'stickers'
+let mesStickers = JSON.parse(localStorage.getItem('stickers_data')) || [];
+let coordonneesStickerTemp = null; // Pour retenir où tu as cliqué
+
+// L'icône custom pour tes stickers (tu pourras changer l'URL de l'image plus tard)
+const iconeSticker = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/garbieldpnt/Marathon/refs/heads/main/Logo%20fond%20blanc.svg', // Un logo par défaut (Alien)
+    iconSize: [36, 36],
+    iconAnchor: [18, 36], // Le point de l'image qui touche la carte
+    popupAnchor: [0, -36] // L'endroit où la bulle s'ouvre
+});
+
+// --- FONCTION BASCULE ---
+function basculerModeMap() {
+    const btn = document.getElementById('btn-toggle-map');
+    const icone = document.getElementById('icone-mode-map');
+
+    if (modeMapActuel === 'sourcing') {
+        // On passe en mode STICKERS
+        modeMapActuel = 'stickers';
+        icone.innerText = '👾';
+        btn.classList.add('bg-slate-900'); // Le bouton devient noir
+        btn.classList.remove('bg-white');
+    } else {
+        // On repasse en mode SOURCING
+        modeMapActuel = 'sourcing';
+        icone.innerText = '🧵';
+        btn.classList.add('bg-white');
+        btn.classList.remove('bg-slate-900');
+    }
+
+    // On rafraîchit la carte pour afficher les bons points
+    redessinerCarte();
+}
+
+function redessinerCarte() {
+    let laBonneCarte = typeof mapInstance !== 'undefined' ? mapInstance : (typeof map !== 'undefined' ? map : maCarte);
+    if (!laBonneCarte) return;
+
+    // 1. On efface TOUS les marqueurs (sans effacer le fond de carte)
+    laBonneCarte.eachLayer((calque) => {
+        // Si c'est un marqueur ET que ce n'est pas le fond de carte (tileLayer)
+        if (calque.getLatLng && !calque._url) {
+            // Optionnel : éviter d'effacer le marqueur de ta position actuelle si tu en as un (ex: userMarker)
+            if (typeof userMarker !== 'undefined' && calque === userMarker) return; 
+            
+            laBonneCarte.removeLayer(calque);
+        }
+    });
+
+    // 2. On dessine les bons marqueurs
+    if (modeMapActuel === 'stickers') {
+        // Dessiner les stickers
+        mesStickers.forEach(sticker => {
+            L.marker([sticker.lat, sticker.lng], { icon: iconeSticker })
+                .bindPopup(`<strong class="text-slate-900 text-[15px] uppercase">${sticker.nom}</strong><br><span class="text-slate-500 text-xs">Sticker posé ici</span>`)
+                .addTo(laBonneCarte);
+        });
+    } else {
+        // Dessiner le sourcing (J'appelle ici ta fonction existante qui affiche tes tissus !)
+        // ATTENTION : Remplace 'afficherMarqueurs' par le vrai nom de ta fonction qui dessine tes tissus
+        if (typeof chargerMarqueurs === 'function') {
+            chargerMarqueurs(); // Ou le nom de ta fonction d'affichage
+        }
+    }
+}
+
+function sauvegarderSticker() {
+    const nom = document.getElementById('input-sticker-nom').value;
+    if (!nom || !coordonneesStickerTemp) return; // Sécurité
+
+    // On crée l'objet sticker
+    const nouveauSticker = {
+        id: Date.now(),
+        nom: nom,
+        lat: coordonneesStickerTemp.lat,
+        lng: coordonneesStickerTemp.lng
+    };
+
+    // On sauvegarde
+    mesStickers.push(nouveauSticker);
+    localStorage.setItem('stickers_data', JSON.stringify(mesStickers));
+
+    // On nettoie et ferme la fenêtre
+    document.getElementById('input-sticker-nom').value = '';
+    document.getElementById('modal-sticker').classList.add('hidden');
+
+    // On met à jour la carte
+    redessinerCarte();
 }
 // INIT
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
