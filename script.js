@@ -543,21 +543,78 @@ function showLevelInfo() {
     if(next) msg += `\nProchain : ${next.name} (${next.xp} XP) -> ${next.unlock}`;
     alert(msg);
 }
-function showInsights() {
-    let k=0, t=0; activites.forEach(a => a.type === 'K' ? k++ : t++);
-    let totalM = 0; activites.forEach(a => totalM += a.valeurMetres);
-    document.getElementById('statCount').innerText = activites.length;
-    document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
-    document.getElementById('statAvg').innerText = (activites.length ? (totalM/activites.length).toFixed(2) : 0) + " m";
-    document.getElementById('statDom').innerText = k > t ? "Type 1" : "Type 2";
-    // 1. Calcul des valeurs numériques
-const grammes = (totalM * 100) / 120;
-const prixTotal = grammes * 30;
+// --- 1. GESTION DES PÉRIODES D'ANALYSE ---
+const periodesAnalyse = [
+    { id: 'all', label: 'Tout le temps' },
+    { id: '24h', label: 'Dernières 24h', ms: 24 * 60 * 60 * 1000 },
+    { id: 'week', label: '7 derniers jours', ms: 7 * 24 * 60 * 60 * 1000 },
+    { id: 'month', label: '30 derniers jours', ms: 30 * 24 * 60 * 60 * 1000 }
+];
 
-// 2. Mise à jour directe du texte dans ton HTML
-document.getElementById('statPoids').innerText = grammes.toFixed(1) + " g";
-document.getElementById('statPrix').innerText = prixTotal.toFixed(2) + " €";
-    // On récupère le total (ex: 12 mètres), on multiplie par 100 et on divise par 120
+let indexPeriodeActuelle = 0; // Au démarrage, on est sur "Tout le temps"
+
+// Fonction appelée quand tu cliques sur les chevrons < et >
+function changerPeriodeAnalyse(direction) {
+    indexPeriodeActuelle += direction;
+    
+    // Si on dépasse les bords, on boucle (carrousel)
+    if (indexPeriodeActuelle < 0) {
+        indexPeriodeActuelle = periodesAnalyse.length - 1;
+    } else if (indexPeriodeActuelle >= periodesAnalyse.length) {
+        indexPeriodeActuelle = 0;
+    }
+
+    // On met à jour le texte entre les flèches
+    const labelElement = document.getElementById('label-periode-analyse');
+    if (labelElement) {
+        labelElement.innerText = periodesAnalyse[indexPeriodeActuelle].label;
+    }
+
+    // On relance TES calculs avec la nouvelle période !
+    showInsights(); 
+}
+
+// --- 2. TA FONCTION D'ANALYSE MISE À JOUR ---
+function showInsights() {
+    // A. Le filtre temporel magique
+    const periodeSelect = periodesAnalyse[indexPeriodeActuelle];
+    let donneesAAnalyser = activites; // Par défaut, tout le monde
+
+    if (periodeSelect.id !== 'all') {
+        const maintenant = Date.now();
+        // On ne garde que les activités dont l'ID (timestamp) est récent
+        donneesAAnalyser = activites.filter(a => (maintenant - a.id) <= periodeSelect.ms);
+    }
+
+    // B. Tes calculs (en utilisant 'donneesAAnalyser' au lieu de 'activites')
+    let k = 0, t = 0; 
+    donneesAAnalyser.forEach(a => a.type === 'K' ? k++ : t++);
+    
+    let totalM = 0; 
+    donneesAAnalyser.forEach(a => totalM += a.valeurMetres);
+
+    // C. Mise à jour de ton HTML
+    document.getElementById('statCount').innerText = donneesAAnalyser.length;
+    document.getElementById('insightTotal').innerText = totalM.toFixed(2) + " m";
+    
+    // Moyenne
+    document.getElementById('statAvg').innerText = (donneesAAnalyser.length ? (totalM / donneesAAnalyser.length).toFixed(2) : 0) + " m";
+    
+    // Sécurité pour la dominante : si la liste est vide (0 fiches), on affiche un tiret
+    if (k === 0 && t === 0) {
+        document.getElementById('statDom').innerText = "-";
+    } else {
+        document.getElementById('statDom').innerText = k >= t ? "Type 1" : "Type 2";
+    }
+
+    // Calcul des valeurs numériques secondaires
+    const grammes = (totalM * 100) / 120;
+    const prixTotal = grammes * 30;
+
+    document.getElementById('statPoids').innerText = grammes.toFixed(1) + " g";
+    document.getElementById('statPrix').innerText = prixTotal.toFixed(2) + " €";
+
+    // On affiche la modale
     document.getElementById('insightsModal').classList.remove('hidden');
 }
 
@@ -1475,6 +1532,8 @@ function sauvegarderSticker() {
     // On met à jour la carte
     redessinerCarte();
 }
+
+
 // INIT
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
 updateUIState();
