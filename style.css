@@ -335,3 +335,22 @@ body.theme-blueprint h1, body.theme-blueprint h2, body.theme-blueprint p, body.t
 body.theme-blueprint .text-2xl, body.theme-blueprint .text-3xl {
     filter: grayscale(100%) opacity(0.7);
 }
+
+// Dans ta boucle forEach ou map qui génère les lignes de l'historique :
+activites.forEach(saisie => {
+    
+    // On vérifie si la saisie tombe exactement pendant le weekend de l'event
+    const estPendantEvent = saisie.id >= debutEvent && saisie.id <= finEvent;
+    
+    // Si oui -> Violet. Si non -> Gris foncé.
+    const couleurTexte = estPendantEvent ? 'text-[#9b51e0]' : 'text-slate-900';
+
+    conteneurHistorique.innerHTML += `
+        <div class="flex justify-between items-center p-3 border-b border-slate-100">
+            <!-- La couleur s'applique automatiquement ici 👇 -->
+            <span class="font-bold ${couleurTexte} text-[15px]">${saisie.nom}</span>
+            <span class="font-black ${couleurTexte} text-[15px]">${saisie.valeurMetres.toFixed(2)} m</span>
+        </div>
+    `;
+});
+
