@@ -320,27 +320,16 @@ function validerSaisie() {
             });
 
             // 2. Ajout de la nouvelle activité en haut de la liste
-           // 1. On vérifie si on est pendant l'événement
-const startEvent = 1715680800000; // 14 Mai 2026 à 12h00
-const endEvent = 1715940000000;   // 17 Mai 2026 à 12h00
-const maintenant = Date.now();
-const estCeLEvent = (maintenant >= startEvent && maintenant <= endEvent);
-
-// 2. Ajout de la nouvelle activité en haut de la liste
-activites.unshift({
-    id: Date.now(),
-    date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-    type: typeEnCours,
-    valeurMetres: metres,
-    nom: nomLieu,
-    note: 0,
-    lat: finalLat,
-    lng: finalLng,
-    // 👇 LA NOUVELLE LIGNE MAGIQUE EST ICI 👇
-    isEventData: estCeLEvent
-});
-
-
+            activites.unshift({
+                id: Date.now(),
+                date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+                type: typeEnCours,
+                valeurMetres: metres,
+                nom: nomLieu,
+                note: 0,
+                lat: finalLat,
+                lng: finalLng
+            });
 
             // 3. Gain d'XP uniquement basé sur la distance (250 XP par mètre)
             const gainXP = Math.floor(metres * 250);
@@ -366,7 +355,6 @@ activites.unshift({
     } else {
         alert("Veuillez entrer une distance valide.");
     }
-  updateEventStats();
 }
 
 // =============================================================
@@ -409,7 +397,7 @@ function detecterLieuEtAutocomplet() {
         navigator.geolocation.getCurrentPosition(pos => {
             const myLat = pos.coords.latitude; const myLng = pos.coords.longitude;
             coordEnCours = { lat: myLat, lng: myLng };
-            let match = null; let minD = 5000;
+            let match = null; let minD = 50;
             for (const [nom, coords] of Object.entries(lieuxUniques)) {
                 const d = getDistanceEnMetres(myLat, myLng, coords.lat, coords.lng);
                 if (d < minD) { minD = d; match = nom; }
@@ -477,44 +465,27 @@ function sauvegarderEtAfficher() {
     }
     const nm = document.getElementById('nextMilestone'); if(nm) nm.innerText = `Objectif : ${next.name} (${(next.m - total).toFixed(2)}m)`;
 
-   const list = document.getElementById('listeActivites');
-const theme = getTheme();
-
-if(list) {
-    list.innerHTML = activites.map(a => {
-        const icone = a.type === 'K' ? theme.iconeK : theme.icone3;
-        
-        // Par défaut, le fond est gris et la bordure très claire
-        let couleurFond = 'bg-slate-50';
-        let couleurBordure = 'border-slate-100';
-        
-        // ON UTILISE TA NOUVELLE ÉTIQUETTE ICI 👇
-        // Si la donnée a été enregistrée pendant l'event, elle sera violette
-        if (a.isEventData === true) {
-            couleurFond = 'bg-purple-100';        
-            couleurBordure = 'border-[#9b51e0]';  
-        }
-
-        return `
-        <div onclick="modifierLigne(${a.id})" class="flex items-center justify-between p-3 ${couleurFond} rounded-xl border ${couleurBordure} relative overflow-hidden group hover:border-[#b886ee] transition-colors cursor-pointer mb-2">
-            <div class="flex items-center gap-3 z-10 w-full">
-                <span class="text-2xl shrink-0">${icone}</span> 
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-baseline">
-                        <p class="font-bold text-slate-700 text-sm">${(a.valeurMetres * 100).toFixed(0)} <span class="text-[10px] text-slate-400">CM</span></p>
-                        <p class="text-[10px] text-slate-300 font-mono shrink-0">${a.date || ''}</p>
+    // Liste
+    const list = document.getElementById('listeActivites');
+    const theme = getTheme();
+    if(list) {
+        list.innerHTML = activites.map(a => {
+            const icone = a.type === 'K' ? theme.iconeK : theme.icone3;
+            return `
+            <div onclick="modifierLigne(${a.id})" class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden group hover:border-purple-200 transition-colors cursor-pointer mb-2">
+                <div class="flex items-center gap-3 z-10 w-full">
+                    <span class="text-2xl shrink-0">${icone}</span> 
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline">
+                            <p class="font-bold text-slate-700 text-sm">${(a.valeurMetres * 100).toFixed(0)} <span class="text-[10px] text-slate-400">CM</span></p>
+                            <p class="text-[10px] text-slate-300 font-mono shrink-0">${a.date || ''}</p>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">${a.nom || 'Chez les fous peut-être'}</p>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">${a.nom || 'Chez les fous peut-être'}</p>
                 </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-
-
-
-
+            </div>`;
+        }).join('');
+    }
 
     updateUIState();
 }
@@ -1562,44 +1533,8 @@ function sauvegarderSticker() {
     redessinerCarte();
 }
 
-// --- DATES EXACTES DE L'ÉVÉNEMENT ---
-// Du 14 mai à 12h00 au 17 mai à 12h00
-const debutEvent = new Date('2026-05-14T00:35:00').getTime();
-const finEvent = new Date('2026-05-17T12:00:00').getTime();
-
-function updateEventStats() {
-    // 1. On ne garde QUE les saisies faites pendant la fenêtre de temps
-    const activitesEvent = activites.filter(a => a.id >= debutEvent && a.id <= finEvent);
-
-    // 2. On prépare les compteurs de mètres
-    let metresK = 0;
-    let metresT = 0;
-    let metresTotal = 0;
-
-    // 3. On fait le tri
-    activitesEvent.forEach(a => {
-        if (a.type === 'K') {
-            metresK += a.valeurMetres;
-        } else {
-            metresT += a.valeurMetres;
-        }
-        metresTotal += a.valeurMetres;
-    });
-
-    // 4. On met à jour l'affichage avec seulement les chiffres
-    const caseK = document.getElementById('event-val-k');
-    const caseT = document.getElementById('event-val-t');
-    const bannerTotal = document.getElementById('event-total-banner');
-
-    if (caseK) caseK.innerText = metresK.toFixed(2);
-    if (caseT) caseT.innerText = metresT.toFixed(2);
-    if (bannerTotal) bannerTotal.innerHTML = metresTotal.toFixed(2) + ' <span class="text-lg">m</span>';
-}
-
-
 
 // INIT
-updateEventStats();
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
 updateUIState();
 sauvegarderEtAfficher();
