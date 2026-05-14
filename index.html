@@ -40,31 +40,6 @@
                 </div>
             </div>
         </header>
-<!-- NOUVEAU BLOC ÉVÉNEMENT (S'affichera entre tes compteurs habituels et le bouton Blueprint) -->
-<div id="bloc-special-event">
-    <!-- Les 2 nouvelles cases violettes (Juste les chiffres) -->
-    <div class="grid grid-cols-2 gap-4 mb-4">
-        <!-- Case 1 Event (Type 1) -->
-        <div class="bg-gradient-to-br from-[#dcd0ff] to-[#f0eaff] border border-[#dcd0ff] rounded-[1.5rem] py-1 flex justify-center items-center shadow-sm">
-            <span id="event-val-k" class="text-[28px] font-black text-[#9b51e0] tracking-tight">0.00</span>
-        </div>
-        
-        <!-- Case 2 Event (Type 2) -->
-        <div class="bg-gradient-to-br from-[#dcd0ff] to-[#f0eaff] border border-[#dcd0ff] rounded-[1.5rem] py-1 flex justify-center items-center shadow-sm">
-            <span id="event-val-t" class="text-[28px] font-black text-[#9b51e0] tracking-tight">0.00</span>
-        </div>
-    </div>
-
-    <!-- L'encart de distance totale ajoutée pendant l'event -->
-    <div class="bg-gradient-to-r from-[#9b51e0] to-[#cba6f7] rounded-xl p-4 mb-4 flex justify-between items-center shadow-md border border-[#b886ee]">
-        <div class="flex flex-col">
-            <span class="text-white/80 font-bold text-[10px] tracking-widest uppercase">INSAAAANE FESTIVAL</span>
-            <span class="text-white font-bold text-sm">Score Insane</span>
-        </div>
-        <span id="event-total-banner" class="text-white font-black text-2xl tracking-tight">0.00 <span class="text-lg">m</span></span>
-    </div>
-</div>
-
 
         <button id="btnBlueprint" onclick="toggleBlueprint()" class="hidden w-full mb-4 p-2 bg-slate-800 text-cyan-400 rounded-lg border border-cyan-900 shadow-lg text-xs font-mono animate-pulse">
             📐 ACTIVER MODE BLUEPRINT
@@ -223,9 +198,6 @@
                 <div class="flex justify-between border-b pb-2"><span>Prix approximatif :</span> <b id="statPrix">0</b></div>
                 
             </div>
-          
-          
-          
           
             <button onclick="document.getElementById('insightsModal').classList.add('hidden')" class="w-full mt-6 py-3 bg-slate-900 text-white rounded-xl font-bold">Fermer</button>
         </div>
