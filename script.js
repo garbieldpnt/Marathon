@@ -324,9 +324,8 @@ function validerSaisie() {
 const startEvent = 1715680800000; // 14 Mai 2026 à 12h00
 const endEvent = 1715940000000;   // 17 Mai 2026 à 12h00
 const maintenant = Date.now();
-(maintenant >= startEvent && maintenant <= endEvent);
-
-// 2. Ajout de la nouvelle activité en haut de la liste
+const estCeLEvent = (maintenant >= startEvent && maintenant <= endEvent);
+            // 2. Ajout de la nouvelle activité en haut de la liste
 activites.unshift({
     id: Date.now(),
     date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
