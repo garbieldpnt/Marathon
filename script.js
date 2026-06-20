@@ -1181,173 +1181,7 @@ function afficherEcranValidation(blob) {
     document.body.appendChild(overlay);
 }
 
-// =============================================================
-// LEADERBOARD SUPABASE (Multijoueur) - SÉCURISÉ
-// =============================================================
 
-// Tes identifiants (À REMPLACER par les tiens)
-const supabaseUrl = 'https://fjgcayrqfociipmhpqza.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZ2NheXJxZm9jaWlwbWhwcXphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MTI4MTIsImV4cCI6MjA4ODE4ODgxMn0.CGOJEjbW2f-K27X0ZrgupmY3mqHcScScdZZ9PYQAGfM';
-
-// 1. Connexion "Paresseuse" (Anti-crash)
-// 1. Connexion "Paresseuse" (Anti-crash CodePen)
-function getSupabase() {
-    if (typeof window.supabase === 'undefined') {
-        alert("La base de données charge encore, réessaie dans une seconde !");
-        return null;
-    }
-    
-    if (!window.maBaseDeDonnees) {
-        // NOUVEAU : On ajoute une option pour désactiver la recherche d'authentification
-        window.maBaseDeDonnees = window.supabase.createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                persistSession: false // 👈 C'est cette ligne qui empêche le crash sur CodePen !
-            }
-        });
-    }
-    return window.maBaseDeDonnees;
-}
-
-// 2. Fonction pour envoyer/mettre à jour son score
-async function publierScore() {
-    const db = getSupabase();
-    if (!db) return; // Arrêt sécurisé si pas chargé
-
-    const totalGeneralEl = document.getElementById('totalGeneral');
-    if (!totalGeneralEl) return alert("Erreur : Impossible de lire le total.");
-    
-    const total = parseFloat(totalGeneralEl.innerText.replace(' m', ''));
-
-    if (total <= 0) {
-        return alert("Tu dois avoir un score supérieur à 0 pour entrer dans le classement !");
-    }
-
-    const pseudo = prompt("🏆 Entre ton pseudo pour le classement mondial :");
-    if (!pseudo || pseudo.trim() === "") return;
-
-    // Envoi à la base de données
-    const { error } = await db
-        .from('Leaderboard')
-        .upsert(
-            { pseudo: pseudo.trim(), score_metres: total }, 
-            { onConflict: 'pseudo' }
-        );
-
-    if (error) {
-        console.error("Erreur Supabase :", error);
-        alert("Oups, impossible de publier le score.");
-    } else {
-        alert(`Félicitations ${pseudo} ! Ton score de ${total}m est en ligne.`);
-        afficherLeaderboard(); 
-    }
-}
-
-// 3. Fonction pour récupérer et afficher le Top 10
-async function afficherLeaderboard() {
-    const db = getSupabase();
-    if (!db) return;
-
-    // 1. Récupération du Top 10
-    const { data, error } = await db
-        .from('Leaderboard')
-        .select('pseudo, score_metres')
-        .order('score_metres', { ascending: false })
-        .limit(10);
-
-    if (error) return console.error("Erreur :", error);
-
-    const podiumBox = document.getElementById('podium-container');
-    const listBox = document.getElementById('leaderboard-list');
-    
-    podiumBox.innerHTML = '';
-    listBox.innerHTML = '';
-
-    if (!data || data.length === 0) {
-        listBox.innerHTML = "<p class='text-center text-slate-500 py-10 uppercase font-bold text-xs'>Aucun score pour le moment...</p>";
-        return;
-    }
-
-// --- LOGIQUE DU PODIUM (TOP 3) ---
-    const podiumOrder = [1, 0, 2]; 
-    
-    podiumOrder.forEach((posIndex) => {
-        const joueur = data[posIndex];
-        if (!joueur) {
-            podiumBox.innerHTML += `<div class="flex-1 opacity-0"></div>`;
-            return;
-        }
-
-        const isFirst = posIndex === 0;
-        const color = isFirst ? 'bg-yellow-500' : (posIndex === 1 ? 'bg-slate-300' : 'bg-orange-500');
-        const height = isFirst ? 'h-32' : (posIndex === 1 ? 'h-24' : 'h-20');
-        const medal = isFirst ? '🥇' : (posIndex === 1 ? '🥈' : '🥉');
-
-        podiumBox.innerHTML += `
-            <div class="flex flex-col items-center flex-1">
-                <span class="text-slate-800 font-black text-[10px] mb-2 truncate w-20 text-center uppercase tracking-tighter">
-                    ${joueur.pseudo}
-                </span>
-                
-                <div class="${height} ${color} w-full rounded-t-2xl relative flex flex-col items-center justify-start pt-3 shadow-lg">
-                    <span class="text-2xl mb-1">${medal}</span>
-                    <div class="flex flex-col items-center leading-none">
-                        <span class="text-slate-900 font-black text-sm">${joueur.score_metres.toFixed(1)}</span>
-                        <span class="text-slate-900/60 font-bold text-[8px] uppercase">Mètres</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    // --- LOGIQUE DE LA LISTE (TOP 4-10) ---
-    if (data.length > 3) {
-        data.slice(3).forEach((joueur, index) => {
-            listBox.innerHTML += `
-                <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="text-slate-400 font-bold w-6 text-sm">#${index + 4}</span>
-                        <span class="text-slate-800 font-bold uppercase tracking-tight text-sm">${joueur.pseudo}</span>
-                    </div>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-[#bc13fe] font-black">${joueur.score_metres.toFixed(2)}</span>
-                        <span class="text-[9px] text-slate-400 font-bold uppercase">m</span>
-                    </div>
-                </div>
-            `;
-        });
-    }
-    
-
-}
-
-function actualiserTextesClassement(modeActif) {
-    const titre = document.getElementById('lb-titre');
-    const sousTitre = document.getElementById('lb-sous-titre');
-    const cta = document.getElementById('lb-cta');
-    const btn = document.getElementById('lb-btn');
-
-    // Sécurité au cas où la page n'est pas encore chargée
-    if (!titre) return; 
-
-    if (modeActif === 'party') {
-        titre.innerText = "Marathon de la DROGUE";
-        sousTitre.innerText = "Le classement des tox de Marseille";
-        cta.innerText = "Prêt à casser le score ?";
-        btn.innerText = "Lâcher mon score 🚀";
-        
-        // Optionnel : tu peux même changer la couleur du bouton ici si tu veux
-        btn.classList.replace('bg-blue-600', 'bg-[#bc13fe]'); // Exemple
-    } else { 
-        // Mode Bureau
-        titre.innerText = "Performance Sourcing";
-        sousTitre.innerText = "Classement professionnel des saisies";
-        cta.innerText = "Enregistrez vos metrics";
-        btn.innerText = "Publier mes résultats 📊";
-        
-        // Optionnel : couleur plus sobre pour le bureau
-        btn.classList.replace('bg-[#bc13fe]', 'bg-blue-600'); // Exemple
-    }
-}
 
 function afficherTopSpots() {
     console.log("👉 Bouton cliqué ! Démarrage de l'analyse...");
@@ -1595,11 +1429,289 @@ function updateEventStats() {
     if (bannerTotal) bannerTotal.innerHTML = metresTotal.toFixed(2) + ' <span class="text-lg">m</span>';
 }
 
+// --- DAYLIO HABIT TRACKER MENSUEL ---
+let joursCoches = JSON.parse(localStorage.getItem('trackerDates')) || [];
+let trackerCurrentDate = new Date(); // Mémorise le mois actuellement affiché
+
+function renderDaylioTracker() {
+    const conteneur = document.getElementById('monthly-grid');
+    const headerMois = document.getElementById('tracker-month-year');
+    if (!conteneur || !headerMois) return;
+
+    conteneur.innerHTML = '';
+
+    const annee = trackerCurrentDate.getFullYear();
+    const mois = trackerCurrentDate.getMonth();
+
+    // 1. Affichage du mois et de l'année (ex: "Juin 2026")
+    const nomMois = trackerCurrentDate.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+    headerMois.innerText = nomMois;
+
+    // 2. Calcul des jours
+    const premierJour = new Date(annee, mois, 1);
+    const dernierJour = new Date(annee, mois + 1, 0);
+    const nbJours = dernierJour.getDate();
+
+    // Ajustement pour commencer par Lundi (0) au lieu de Dimanche (0 par défaut)
+    let indexPremierJour = premierJour.getDay() - 1;
+    if (indexPremierJour === -1) indexPremierJour = 6;
+
+    // 3. Injecter des cases vides pour que le 1er du mois tombe le bon jour
+    for (let i = 0; i < indexPremierJour; i++) {
+        conteneur.innerHTML += `<div></div>`;
+    }
+
+    const aujourdhui = new Date();
+    const dateStrAujourdhui = aujourdhui.toISOString().split('T')[0];
+
+    // 4. Boucle pour créer chaque jour du mois
+    for (let jour = 1; jour <= nbJours; jour++) {
+        // On force midi (12h) pour éviter les bugs de fuseau horaire
+        const dateCase = new Date(annee, mois, jour, 12); 
+        const dateStr = dateCase.toISOString().split('T')[0];
+
+        const estCoche = joursCoches.includes(dateStr);
+        const estAujourdhui = (dateStr === dateStrAujourdhui);
+        // On grise le futur pour ne pas pouvoir cocher demain
+        const estFutur = dateCase > aujourdhui && !estAujourdhui; 
+
+        let classesBulle = "w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm font-bold transition-all ";
+        let onclickAction = "";
+
+        if (estFutur) {
+            classesBulle += "bg-transparent text-slate-200 cursor-default";
+        } else {
+            classesBulle += "cursor-pointer active:scale-95 ";
+            onclickAction = `onclick="toggleDaylioDay('${dateStr}')"`;
+
+            if (estCoche) {
+                // Style validé
+                classesBulle += "bg-[#9b51e0] text-white shadow-sm";
+            } else {
+                // Style non validé (gris)
+                classesBulle += "bg-slate-50 text-slate-400 hover:bg-slate-200";
+            }
+
+            // Petit contour violet si c'est aujourd'hui et non coché
+            if (estAujourdhui && !estCoche) {
+                classesBulle += " ring-2 ring-purple-300 ring-offset-1";
+            }
+        }
+
+        conteneur.innerHTML += `
+            <div class="${classesBulle}" ${onclickAction}>
+                ${jour}
+            </div>
+        `;
+    }
+
+    calculerSerie();
+}
+
+function changerMoisTracker(offset) {
+    // Naviguer +1 ou -1 mois
+    trackerCurrentDate.setMonth(trackerCurrentDate.getMonth() + offset);
+    renderDaylioTracker();
+}
+
+function toggleDaylioDay(dateStr) {
+    const index = joursCoches.indexOf(dateStr);
+    
+    if (index === -1) {
+        joursCoches.push(dateStr);
+    } else {
+        joursCoches.splice(index, 1);
+    }
+    
+    localStorage.setItem('trackerDates', JSON.stringify(joursCoches));
+    renderDaylioTracker();
+    mettreAJourGraphiques(); 
+}
+
+function calculerSerie() {
+    let streak = 0;
+    const aujourdhui = new Date();
+    const dateStrAujourdhui = aujourdhui.toISOString().split('T')[0];
+    let dateCheck = new Date(aujourdhui);
+    
+    // Si aujourd'hui n'est pas encore coché, on compte à partir d'hier
+    if (!joursCoches.includes(dateStrAujourdhui)) {
+        dateCheck.setDate(dateCheck.getDate() - 1);
+    }
+
+    while (true) {
+        const str = dateCheck.toISOString().split('T')[0];
+        if (joursCoches.includes(str)) {
+            streak++;
+            dateCheck.setDate(dateCheck.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+    
+    const spanStreak = document.getElementById('streak-counter');
+    if (spanStreak) spanStreak.innerText = streak;
+}
+function mettreAJourGraphiques() {
+    if (typeof Chart === 'undefined') return;
+
+    const ctxJours = document.getElementById('chartJours');
+    const ctxMois = document.getElementById('chartMois');
+    if (!ctxJours || !ctxMois) return;
+
+    // 1. Préparation des compteurs
+    const compteursJours = [0, 0, 0, 0, 0, 0, 0]; 
+    const compteursMois = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; 
+    const anneeEnCours = new Date().getFullYear();
+
+    // On va mémoriser les jours qui ont des vraies saisies pour ne pas compter en double
+    const joursSourcingAuto = [];
+
+    // 2. On compte d'abord tes vraies saisies automatiques
+    if (typeof activites !== 'undefined') {
+        activites.forEach(saisie => {
+            const dateSaisie = new Date(Number(saisie.id));
+            if (isNaN(dateSaisie.getTime())) return;
+
+            // On garde la date en mémoire (ex: "2026-06-20")
+            const dateStr = dateSaisie.toISOString().split('T')[0];
+            if (!joursSourcingAuto.includes(dateStr)) {
+                joursSourcingAuto.push(dateStr);
+            }
+
+            // --- Jours de la semaine ---
+            let indexJour = dateSaisie.getDay() - 1;
+            if (indexJour === -1) indexJour = 6;
+            compteursJours[indexJour]++;
+
+            // --- Mois de l'année ---
+            if (dateSaisie.getFullYear() === anneeEnCours) {
+                compteursMois[dateSaisie.getMonth()]++;
+            }
+        });
+    }
+
+    // 3. LA NOUVEAUTÉ : On ajoute tes clics manuels
+    if (typeof joursCoches !== 'undefined') {
+        joursCoches.forEach(dateStr => {
+            // Si tu as cliqué manuellement sur un jour qui n'a AUCUNE saisie auto...
+            if (!joursSourcingAuto.includes(dateStr)) {
+                // On force l'heure à midi pour éviter les bugs de fuseau horaire
+                const dateManuelle = new Date(dateStr + 'T12:00:00');
+                
+                // On donne une valeur de +1 à ce jour "sauvé"
+                let indexJour = dateManuelle.getDay() - 1;
+                if (indexJour === -1) indexJour = 6;
+                compteursJours[indexJour]++;
+
+                if (dateManuelle.getFullYear() === anneeEnCours) {
+                    compteursMois[dateManuelle.getMonth()]++;
+                }
+            }
+        });
+    }
+
+    // 4. Dessin du Graphique des Jours
+    if (window.instanceChartJours) window.instanceChartJours.destroy();
+    window.instanceChartJours = new Chart(ctxJours, {
+        type: 'bar',
+        data: {
+            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+            datasets: [{
+                data: compteursJours,
+                backgroundColor: '#9b51e0',
+                borderRadius: 6,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#cbd5e1' }, border: { display: false }, grid: { color: '#f8fafc' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, border: { display: false }, grid: { display: false } }
+            }
+        }
+    });
+
+    // 5. Dessin du Graphique des Mois
+    if (window.instanceChartMois) window.instanceChartMois.destroy();
+    window.instanceChartMois = new Chart(ctxMois, {
+        type: 'line',
+        data: {
+            labels: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'],
+            datasets: [{
+                data: compteursMois,
+                borderColor: '#9b51e0',
+                backgroundColor: 'rgba(155, 81, 224, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#9b51e0',
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#cbd5e1' }, border: { display: false }, grid: { color: '#f8fafc' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, border: { display: false }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+// --- SYNCHRONISATION DES ANCIENNES SAISIES ---
+function synchroniserAnciennesSaisies() {
+    // 1. On récupère la mémoire actuelle du calendrier
+    let memoireTracker = JSON.parse(localStorage.getItem('trackerDates')) || [];
+    let sauvegardeNecessaire = false;
+
+    // 2. On scanne tout ton historique d'activités
+    if (typeof activites !== 'undefined') {
+        activites.forEach(a => {
+            const dateSaisie = new Date(Number(a.id));
+            if (!isNaN(dateSaisie.getTime())) {
+                // On formate la date précisément sur ton fuseau horaire local (sans décalage)
+                const annee = dateSaisie.getFullYear();
+                const mois = String(dateSaisie.getMonth() + 1).padStart(2, '0');
+                const jour = String(dateSaisie.getDate()).padStart(2, '0');
+                const dateExacte = `${annee}-${mois}-${jour}`;
+
+                // Si ce jour n'est pas encore coché dans le tracker, on l'ajoute !
+                if (!memoireTracker.includes(dateExacte)) {
+                    memoireTracker.push(dateExacte);
+                    sauvegardeNecessaire = true;
+                }
+            }
+        });
+    }
+
+    // 3. On sauvegarde si de nouvelles dates ont été trouvées
+    if (sauvegardeNecessaire) {
+        localStorage.setItem('trackerDates', JSON.stringify(memoireTracker));
+        // On met à jour la variable globale pour que l'affichage soit correct
+        if (typeof joursCoches !== 'undefined') {
+            joursCoches = memoireTracker;
+        }
+        renderDaylioTracker();
+        mettreAJourGraphiques();
+    }
+}
+
+// On lance la machine magique
+
 
 
 // INIT
+    synchroniserAnciennesSaisies();
+
+renderDaylioTracker();
+mettreAJourGraphiques();
 updateEventStats();
 synchroniserXP(); // Recalcule l'XP au chargement pour les anciens utilisateurs
 updateUIState();
 sauvegarderEtAfficher();
-
