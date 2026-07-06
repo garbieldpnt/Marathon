@@ -45,6 +45,7 @@ const TROPHY_LIST = [
     { m: 1.67, icon: "🦶", name: "Kim" },
     { m: 1.68, icon: "💜", name: "Lucie" },
     { m: 1.70, icon: "🐅", name: "Gabriel" },
+    { m: 1.78, icon: "🦔", name: "Alex" },
     { m: 1.84, icon: "🤐", name: "Raph" },
     { m: 1.88, icon: "🎸", name: "Jolan the tracer" },
     { m: 1.90, icon: "🥸", name: "Adrien askip" },
